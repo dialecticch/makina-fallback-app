@@ -8,6 +8,7 @@ import { type ActionContext, useActionContext } from "@/actions/use-action-conte
 import { useTransactionFlow } from "@/actions/use-transaction-flow";
 import { ActionButton } from "@/components/action-button";
 import { Amount } from "@/components/amount";
+import { LearnMore } from "@/components/learn-more";
 import { Line, SpenderLine } from "@/components/preview-lines";
 import { parseTokenInput, TokenAmountInput } from "@/components/token-amount-input";
 import { Button } from "@/components/ui/button";
@@ -119,9 +120,7 @@ function RequestRedeemFields({ view, ctx }: { view: MachineView; ctx: ActionCont
         <Line label={`Request reverts below (${(slippageBps / 100).toFixed(2)}% slippage)`}>
           <Amount value={minAssets} decimals={view.accountingDecimals} symbol={view.accountingSymbol} compact={false} />
         </Line>
-        <Line label="Redemption fee">
-          {feeRate === undefined ? (isFeeVariant ? "–" : "None") : formatWadPercent(feeRate)}
-        </Line>
+        {isFeeVariant && <Line label="Redemption fee">{feeRate === undefined ? "–" : formatWadPercent(feeRate)}</Line>}
         <Line label="Finalization delay">
           {data.redeemerInfo.finalizationDelay === undefined
             ? "–"
@@ -142,8 +141,7 @@ function RequestRedeemFields({ view, ctx }: { view: MachineView; ctx: ActionCont
         )}
       </div>
       <p className="text-muted-foreground text-xs">
-        The slippage limit only protects the request itself. When the mechanic finalizes it, you receive the lower of
-        this value and the value at finalization: there is no minimum then.
+        At finalization you receive the lower of this value and the value then. <LearnMore topic="slippage" />
       </p>
 
       <ActionButton

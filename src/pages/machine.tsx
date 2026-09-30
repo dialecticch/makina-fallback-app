@@ -8,6 +8,7 @@ import { ActionPanel } from "@/components/action-panel";
 import { Address } from "@/components/address";
 import { Amount } from "@/components/amount";
 import { AccessBadge, StatusBadge } from "@/components/badges";
+import { LearnMore } from "@/components/learn-more";
 import { CapBar } from "@/components/cap-bar";
 import { ChainIcon } from "@/components/chain-icon";
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -25,9 +26,9 @@ import { formatDuration, formatWadPercent } from "@/lib/format";
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-1.5 text-sm">
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-0.5 py-1.5 text-sm">
       <dt className="text-muted-foreground">{label}</dt>
-      <dd className="text-right">{children}</dd>
+      <dd className="ml-auto text-right">{children}</dd>
     </div>
   );
 }
@@ -62,25 +63,24 @@ function UnverifiedHubBanner({ view }: { view: MachineView }) {
   if (view.verifiedHub || !hub) return null;
   const id = hub.instance.id;
   const unlocked = settings.unlockedHubs.includes(id);
-  const how = hub.instance.source === "user" ? "added by you" : "found by the app on this network";
 
   return (
     <div role="alert" className="border-warning/40 bg-warning/10 flex flex-col gap-2 rounded-lg border p-3 text-sm">
       <p className="flex items-start gap-2">
         <ShieldAlert className="text-warning mt-0.5 size-4 shrink-0" aria-hidden />
         <span>
-          <strong>Unverified hub.</strong> This Machine belongs to a hub {how}, not built into this release. Its
-          registry is <span className="font-mono break-all">{hub.instance.hubCoreRegistry}</span>.{" "}
-          {unlocked
-            ? "You unlocked actions for it (lock it again under Settings, Networks)."
-            : "Deposits and redemptions stay disabled until you confirm that address from an official Makina source."}
+          <strong>Unverified hub</strong> ({hub.instance.source === "user" ? "added by you" : "found on this network"}
+          ), not built into this release. Registry{" "}
+          <span className="font-mono break-all">{hub.instance.hubCoreRegistry}</span>.{" "}
+          {unlocked ? "Unlocked: deposits and redemptions are enabled." : "View only until you unlock it."}{" "}
+          <LearnMore topic="hubs" />
         </span>
       </p>
       {!unlocked && (
         <div className="flex flex-wrap items-center gap-3">
           <label className="flex items-center gap-2 text-xs">
-            <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} />I checked this
-            registry address against an official Makina source.
+            <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} />
+            This registry address comes from an official Makina source.
           </label>
           <Button
             size="sm"
@@ -88,7 +88,7 @@ function UnverifiedHubBanner({ view }: { view: MachineView }) {
             disabled={!checked}
             onClick={() => writeUserSettings({ unlockedHubs: [...settings.unlockedHubs, id] })}
           >
-            Unlock actions for this hub
+            Unlock this hub
           </Button>
         </div>
       )}
@@ -184,7 +184,7 @@ function MachineDetails({ view, now }: { view: MachineView; now: bigint }) {
     <div className="flex flex-col gap-6 pb-20 lg:pb-0">
       <Header view={view} now={now} />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="flex flex-col gap-4 lg:order-2">
           <div className="lg:sticky lg:top-20 flex flex-col gap-4">
             <ErrorBoundary label="Actions">
@@ -196,7 +196,7 @@ function MachineDetails({ view, now }: { view: MachineView; now: bigint }) {
           </div>
         </div>
         <div className="flex flex-col gap-4 lg:order-1">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Section title="Fees">
               <Row label="Management (annual)">
                 <Rate value={view.fees.management} />
@@ -334,8 +334,8 @@ function MachineDetails({ view, now }: { view: MachineView; now: bigint }) {
           {(view.depositorKind === undefined && !view.depositorClosed && data.depositor !== undefined) ||
           (view.redeemerKind === undefined && !view.redeemerClosed && data.redeemer !== undefined) ? (
             <p className="text-muted-foreground text-sm">
-              This Machine uses periphery contracts this app does not recognise, so the affected actions are read-only.
-              Use the contract addresses above with a block explorer or the main Makina app.
+              Some of this Machine&apos;s contracts are not supported here, so those actions are read-only.{" "}
+              <LearnMore topic="statuses" />
             </p>
           ) : null}
         </div>
@@ -372,7 +372,7 @@ export function MachinePage() {
     return (
       <div className="flex flex-col gap-4" aria-busy>
         <Skeleton className="h-10 w-64" />
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {[0, 1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-48" />
           ))}

@@ -1,10 +1,19 @@
 import { Monitor, Moon, Settings, Sun } from "lucide-react";
 import { useState } from "react";
 
+import { LearnMore } from "@/components/learn-more";
 import { AddInstancePanel, NetworksPanel, RpcPanel } from "@/components/settings-networks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { SLIPPAGE_BPS } from "@/config/app";
 import { DEFAULT_SETTINGS, sanitizeSettings, useUserSettings, writeUserSettings } from "@/config/user-settings";
 import { clearCacheAndReload } from "@/lib/query-client";
@@ -19,7 +28,32 @@ const THEMES = [
 
 const pct = (bps: number) => `${bps / 100}%`;
 
-function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
+/** A one-line description, then "Learn more" for the long explanation (it closes the sheet). */
+function Describe({ text, topic }: { text: string; topic?: React.ComponentProps<typeof LearnMore>["topic"] }) {
+  return (
+    <>
+      {text}
+      {topic && (
+        <>
+          {" "}
+          <SheetClose asChild>
+            <LearnMore topic={topic} />
+          </SheetClose>
+        </>
+      )}
+    </>
+  );
+}
+
+function Section({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <section className="flex flex-col gap-2 border-t px-5 pt-4">
       <h3 className="text-sm font-medium">{title}</h3>
@@ -38,7 +72,7 @@ function SlippageSection() {
   return (
     <Section
       title="Slippage"
-      description={`Deposits revert if they would mint fewer shares, and redemption requests if they are worth less, than the estimate minus this. ${pct(SLIPPAGE_BPS.min)} to ${pct(SLIPPAGE_BPS.max)}.`}
+      description={<Describe text="The price move you accept on deposits and redemption requests." topic="slippage" />}
     >
       <div className="flex items-center gap-2">
         <label htmlFor="slippage" className="sr-only">
@@ -90,7 +124,7 @@ function BackupSection() {
   return (
     <Section
       title="Backup"
-      description="Settings are stored in this browser, for this address only. Copy them to move them; they include any RPC URLs, which may contain API keys."
+      description="Copy your settings to another browser. They include any RPC URLs, which may contain API keys."
     >
       <div className="flex flex-wrap gap-2">
         <Button
@@ -174,21 +208,25 @@ export function SettingsSheet() {
 
         <Section
           title="RPC endpoints"
-          description="Your own RPCs are tried before the public ones: the best fix when public RPCs are slow or rate-limited. Only add RPCs you trust: an RPC can lie about chain state (the app double-checks transaction targets with your wallet)."
+          description={
+            <Describe text="Your own RPCs, tried before the public ones: the best fix for slow loading." topic="rpcs" />
+          }
         >
           <RpcPanel />
         </Section>
 
         <Section
-          title="Networks"
-          description="Hubs the app loads. Only built-in hubs are verified; others are read-only until you unlock them."
+          title="Hub networks"
+          description={
+            <Describe text="Built-in hubs are verified. Others are view-only until you unlock them." topic="hubs" />
+          }
         >
           <NetworksPanel />
         </Section>
 
         <Section
-          title="Add an instance"
-          description="A hub this release does not ship. The app only checks that the address behaves like a hub registry, not that it is Makina's: get the address from an official Makina source. Its Machines stay read-only until you unlock them."
+          title="Add a custom hub"
+          description={<Describe text="Only use a registry address from an official Makina source." topic="hubs" />}
         >
           <AddInstancePanel />
         </Section>
@@ -217,7 +255,7 @@ export function SettingsSheet() {
 
         <Section
           title="Cache"
-          description="Public chain data is cached for 7 days so reloads are instant, and loaded activity history is kept to avoid rescanning. Clearing both refetches everything."
+          description={<Describe text="Chain data is kept in this browser so reloads are instant." topic="storage" />}
         >
           <Button variant="outline" size="sm" className="w-fit" onClick={clearCacheAndReload}>
             Clear cache and reload

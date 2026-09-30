@@ -64,8 +64,8 @@ Everything is optional.
 | ---------------------------------------- | --------------------------------------------------------------------------------------- |
 | Settings → Slippage                      | Tolerance for the minimum shares on deposit and minimum assets on a redemption request. |
 | Settings → RPC endpoints                 | Your own RPCs per network, tried first. Each must answer with that network's chain ID.  |
-| Settings → Networks                      | The hubs the app loads: hide a hub, lock an unlocked one, rescan for new hubs.          |
-| Settings → Add an instance               | A hub this release does not ship (read-only until you unlock it).                       |
+| Settings → Hub networks                  | The hubs the app loads: hide a hub, lock an unlocked one, rescan for new hubs.          |
+| Settings → Add a custom hub              | A hub this release does not ship (view-only until you unlock it).                       |
 | Settings → Backup                        | Copy, import or reset settings.                                                         |
 | `.env.local` → `VITE_RPC_URLS_<chainId>` | RPCs baked into your build. See [`.env.example`](.env.example).                         |
 
@@ -78,11 +78,13 @@ your build. Use Settings, or `.env.development.local` (only for `pnpm dev`).
   checked by maintainer scripts at each release.
 - **Discovered**: the app probes every supported network (Arbitrum, Optimism, Ink, Monad) for Makina's
   infrastructure at the known registry addresses.
-- **Added by you**: Settings → Add an instance, with the chain ID and HubCoreRegistry address (and RPCs for a network
+- **Added by you**: Settings → Add a custom hub, with the chain ID and HubCoreRegistry address (and RPCs for a network
   the app does not ship).
 
-Discovered and added hubs are marked **Unverified hub** and stay read-only until you confirm their registry address
-against an official Makina source (Machine page → Unlock). The app only checks that such an address behaves like a
+Discovered and added hubs are marked **Unverified hub**: you can view their Machines, but deposits and redemptions
+stay disabled until you **unlock** the hub by confirming its registry address against an official Makina source (on any
+of its Machine pages). Claims always work, since they cannot send funds anywhere else. Settings → Hub networks locks a
+hub again. The app only checks that such an address behaves like a
 hub registry, not that Makina deployed it, and "add this RPC / this registry" is an obvious phishing line during an
 outage.
 

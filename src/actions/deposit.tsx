@@ -17,7 +17,7 @@ import { useUserSettings } from "@/config/user-settings";
 import type { MachineView } from "@/data/machine-view";
 import { useDebouncedMemo } from "@/hooks/use-debounced-memo";
 import { applySlippage } from "@/lib/derive";
-import { formatDuration, formatWadPercent } from "@/lib/format";
+import { formatDuration } from "@/lib/format";
 import { preCheckFor } from "@/lib/pre-checks";
 
 /** Deposit through the Machine's DirectDepositor. */
@@ -95,10 +95,6 @@ function DepositFields({ view, ctx }: { view: MachineView; ctx: ActionContext })
             symbol={view.accountingSymbol}
             compact={false}
           />
-        </Line>
-        <Line label="Fees (mgmt / perf)">
-          {view.fees.management === undefined ? "–" : formatWadPercent(view.fees.management)} /{" "}
-          {view.fees.performance === undefined ? "–" : formatWadPercent(view.fees.performance)}
         </Line>
         <Line label="Cap headroom">
           {view.cap?.kind === "none" ? (

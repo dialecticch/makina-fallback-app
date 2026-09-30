@@ -1,6 +1,9 @@
+import { Link } from "react-router";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -21,29 +24,12 @@ export function WelcomeModal() {
           <DialogDescription asChild>
             <div className="flex flex-col gap-3">
               <p>
-                A minimal Makina frontend that reads everything directly from the chain through public RPCs. It keeps
-                working when the main Makina app, its API or its indexers are down.
+                A minimal Makina frontend that reads everything from the chain, so it works even when Makina is down.
               </p>
+              <p>Redemptions go through a queue: a request must be finalized before you can claim it.</p>
               <p>
-                Redemptions go through a queue: the Machine&apos;s mechanic must finalize a request before you can claim
-                it, and this app cannot speed that up.
-              </p>
-              <p>
-                Anyone can host a copy of this app. Check that you run it from the official source
-                {APP.repoUrl ? (
-                  <>
-                    {" "}
-                    (
-                    <a className="text-brand underline" href={APP.repoUrl} target="_blank" rel="noreferrer">
-                      {APP.repoUrl.replace(/^https:\/\//, "")}
-                    </a>
-                    )
-                  </>
-                ) : null}
-                , and compare the commit in the footer with a release you trust.
-              </p>
-              <p>
-                For the full experience, use the{" "}
+                Anyone can host a copy: check the commit in the footer against a release you trust. For the full
+                experience, use the{" "}
                 <a className="text-brand underline" href={APP.makinaApp} target="_blank" rel="noreferrer">
                   main Makina app
                 </a>
@@ -52,7 +38,12 @@ export function WelcomeModal() {
             </div>
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter>
+        <DialogFooter className="gap-2">
+          <DialogClose asChild>
+            <Button variant="outline" asChild>
+              <Link to="/about">How it works</Link>
+            </Button>
+          </DialogClose>
           <Button onClick={() => setHasSeenWelcome(true)}>Continue</Button>
         </DialogFooter>
       </DialogContent>

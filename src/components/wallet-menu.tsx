@@ -32,9 +32,10 @@ function ConnectWalletButton() {
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogTrigger asChild>
-        <Button>
+        {/* Icon only on phones: the header row has to fit in 320 px. */}
+        <Button aria-label="Connect wallet" title="Connect wallet">
           <Wallet aria-hidden />
-          Connect wallet
+          <span className="hidden sm:inline">Connect wallet</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
