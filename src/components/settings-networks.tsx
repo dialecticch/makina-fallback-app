@@ -70,7 +70,7 @@ export function NetworksPanel() {
                   variant="ghost"
                   className="size-6"
                   aria-label={`Lock actions on the ${chain?.name ?? i.chainId} hub again`}
-                  title="Lock actions again"
+                  title="Lock this hub again (view only)"
                   onClick={() => writeUserSettings({ unlockedHubs: toggle(settings.unlockedHubs, i.id, false) })}
                 >
                   <Lock aria-hidden />
@@ -94,7 +94,7 @@ export function NetworksPanel() {
                   size="icon"
                   variant="ghost"
                   className="size-6"
-                  aria-label={`Remove the instance on ${chain?.name ?? i.chainId}`}
+                  aria-label={`Remove the custom hub on ${chain?.name ?? i.chainId}`}
                   onClick={() => {
                     writeUserSettings({
                       instances: settings.instances.filter(
@@ -151,7 +151,7 @@ export function NetworksPanel() {
   );
 }
 
-/** Add a hub instance by hand, validated before it is saved. RPCs only for chains the app does not ship. */
+/** Add a custom hub by hand, validated before it is saved. RPCs only for chains the app does not ship. */
 export function AddInstancePanel() {
   const known = useInstances({ includeHidden: true });
   const [chainId, setChainId] = useState("");
@@ -301,8 +301,8 @@ export function RpcPanel() {
       )}
       {fromInstances > 0 && (
         <p className="text-muted-foreground text-xs">
-          Plus {fromInstances} RPC{fromInstances === 1 ? "" : "s"} from the instance you added on this network (remove
-          the instance under Networks to drop them).
+          Plus {fromInstances} RPC{fromInstances === 1 ? "" : "s"} from the custom hub you added on this network (remove
+          the hub under Hub networks to drop them).
         </p>
       )}
       <Button

@@ -6,9 +6,9 @@ import { Amount } from "@/components/amount";
 /** One label / value line in an action's preview box. */
 export function Line({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-3 text-xs">
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 text-xs">
       <span className="text-muted-foreground">{label}</span>
-      <span className="text-right">{children}</span>
+      <span className="ml-auto text-right">{children}</span>
     </div>
   );
 }

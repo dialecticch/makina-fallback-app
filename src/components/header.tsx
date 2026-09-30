@@ -1,3 +1,4 @@
+import { ChartPie, Compass } from "lucide-react";
 import { NavLink } from "react-router";
 
 import { ChainFilterSelect } from "@/components/chain-filter";
@@ -8,14 +9,15 @@ import { WalletMenu } from "@/components/wallet-menu";
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { to: "/", label: "Explore", end: true },
-  { to: "/portfolio", label: "Portfolio", end: false },
+  { to: "/", label: "Explore", end: true, icon: Compass },
+  { to: "/portfolio", label: "Portfolio", end: false, icon: ChartPie },
 ];
 
 export function Header() {
   return (
     <header className="bg-card sticky top-0 z-40 border-b">
-      <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-4 px-4 sm:px-6">
+      {/* Must fit in 320 px: below sm the nav and the wallet button show icons only (labels stay for screen readers). */}
+      <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-2 px-4 sm:gap-4 sm:px-6">
         <NavLink to="/" className="flex shrink-0 items-center gap-2" aria-label="Makina Fallback, home">
           <MakinaLogo />
           <span className="hidden text-lg font-semibold tracking-tight sm:inline">Makina</span>
@@ -23,19 +25,21 @@ export function Header() {
         </NavLink>
 
         <nav aria-label="Main" className="flex items-center gap-1">
-          {NAV.map(({ to, label, end }) => (
+          {NAV.map(({ to, label, end, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
               end={end}
+              title={label}
               className={({ isActive }) =>
                 cn(
-                  "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                  "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors sm:px-3",
                   isActive ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground",
                 )
               }
             >
-              {label}
+              <Icon className="size-4 sm:hidden" aria-hidden />
+              <span className="sr-only sm:not-sr-only">{label}</span>
             </NavLink>
           ))}
         </nav>

@@ -18,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useInstanceSnapshots } from "@/data/hub-store";
 import type { MachineView } from "@/data/machine-view";
 import { useMachineViews } from "@/data/use-machines";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useTableFits } from "@/hooks/use-table-fits";
 import { STATUS_META, STATUS_PRECEDENCE, type Status } from "@/lib/derive";
 import { formatWadPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -115,11 +115,15 @@ function MachineName({ view }: { view: MachineView }) {
   const chains = useChains();
   const chain = chains.find((c) => c.id === view.data.chainId);
   return (
-    <Link to={`/machine/${view.data.chainId}/${view.data.machine}`} className="group flex min-w-0 items-center gap-2">
+    <Link
+      to={`/machine/${view.data.chainId}/${view.data.machine}`}
+      className="group flex min-w-0 items-center gap-2"
+      title={view.name ?? view.data.machine}
+    >
       <ChainIcon id={view.data.chainId} name={chain?.name} />
       <span className="sr-only">{chain?.name}</span>
       <span className="flex min-w-0 flex-col">
-        <span className="font-medium group-hover:underline">{view.symbol ?? "Unknown"}</span>
+        <span className="truncate font-medium group-hover:underline">{view.symbol ?? "Unknown"}</span>
         <span className="text-muted-foreground truncate text-xs">{view.name ?? view.data.machine}</span>
       </span>
     </Link>
@@ -163,7 +167,9 @@ const wrapRow = (fallback: React.ReactNode) => (
 function MachineRow({ view, dimmed }: { view: MachineView; dimmed: boolean }) {
   return (
     <TableRow className={cn("hover:bg-accent/40", dimmed && "opacity-60")}>
-      <TableCell className="max-w-64">
+      {/* w-full + max-w-0: this column takes whatever width is left and truncates, instead of widening the table;
+          min-w-46 keeps names readable (below that, the page switches to cards). */}
+      <TableCell className="w-full max-w-0 min-w-46">
         <MachineName view={view} />
       </TableCell>
       <TableCell>{view.accountingSymbol ?? "–"}</TableCell>
@@ -230,8 +236,8 @@ export function ExplorePage() {
   const views = useMachineViews();
   const snapshots = useInstanceSnapshots();
   const { chainId } = useChainFilter();
-  // Nine columns need about 1,000 px, so rows become cards below Tailwind's `lg`.
-  const isMobile = useIsMobile(1024);
+  // Rows become cards whenever the table would not fit, whatever the reason (see useTableFits).
+  const layout = useTableFits();
   const [search, setSearch] = useState("");
   const [token, setToken] = useState("all");
   const [sort, setSort] = useState<Sort>({ key: "tvl", dir: "desc" });
@@ -302,58 +308,66 @@ export function ExplorePage() {
         </span>
       </div>
 
-      {isMobile ? (
-        <div className="flex flex-col gap-3">
-          {rows.map((view) => (
-            <ErrorBoundary key={view.key} label={view.symbol ?? "This Machine"}>
-              <MachineCard view={view} dimmed={erroredInstances.has(view.data.instanceId)} />
-            </ErrorBoundary>
-          ))}
-          {rows.length === 0 && loading && [0, 1, 2].map((i) => <Skeleton key={i} className="h-48" />)}
-        </div>
-      ) : (
-        <Card className="overflow-hidden py-1">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <SortHeader label="Machine" sortKey="machine" sort={sort} setSort={setSort} />
-                <SortHeader label="Token" sortKey="token" sort={sort} setSort={setSort} />
-                <SortHeader label="TVL" sortKey="tvl" sort={sort} setSort={setSort} className="text-right" />
-                <SortHeader
-                  label="Share price"
-                  sortKey="sharePrice"
-                  sort={sort}
-                  setSort={setSort}
-                  className="text-right"
-                />
-                <SortHeader label="Mgmt / perf fee" sortKey="fees" sort={sort} setSort={setSort} />
-                <SortHeader label="Cap" sortKey="cap" sort={sort} setSort={setSort} />
-                <SortHeader label="Access" sortKey="access" sort={sort} setSort={setSort} />
-                <SortHeader label="Status" sortKey="status" sort={sort} setSort={setSort} />
-                <TableHead>
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((view) => (
-                <ErrorBoundary key={view.key} label={view.symbol ?? "This Machine"} wrap={wrapRow}>
-                  <MachineRow view={view} dimmed={erroredInstances.has(view.data.instanceId)} />
-                </ErrorBoundary>
-              ))}
-              {rows.length === 0 &&
-                loading &&
-                [0, 1, 2, 3, 4].map((i) => (
-                  <TableRow key={i}>
-                    <TableCell colSpan={9}>
-                      <Skeleton className="h-8" />
-                    </TableCell>
-                  </TableRow>
+      <div ref={layout.ref}>
+        {!layout.fits ? (
+          <div className="flex flex-col gap-3">
+            {rows.map((view) => (
+              <ErrorBoundary key={view.key} label={view.symbol ?? "This Machine"}>
+                <MachineCard view={view} dimmed={erroredInstances.has(view.data.instanceId)} />
+              </ErrorBoundary>
+            ))}
+            {rows.length === 0 && loading && [0, 1, 2].map((i) => <Skeleton key={i} className="h-48" />)}
+          </div>
+        ) : (
+          <Card className="overflow-hidden py-1">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <SortHeader
+                    label="Machine"
+                    sortKey="machine"
+                    sort={sort}
+                    setSort={setSort}
+                    className="w-full min-w-46"
+                  />
+                  <SortHeader label="Token" sortKey="token" sort={sort} setSort={setSort} />
+                  <SortHeader label="TVL" sortKey="tvl" sort={sort} setSort={setSort} className="text-right" />
+                  <SortHeader
+                    label="Share price"
+                    sortKey="sharePrice"
+                    sort={sort}
+                    setSort={setSort}
+                    className="text-right"
+                  />
+                  <SortHeader label="Mgmt / perf fee" sortKey="fees" sort={sort} setSort={setSort} />
+                  <SortHeader label="Cap" sortKey="cap" sort={sort} setSort={setSort} />
+                  <SortHeader label="Access" sortKey="access" sort={sort} setSort={setSort} />
+                  <SortHeader label="Status" sortKey="status" sort={sort} setSort={setSort} />
+                  <TableHead>
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((view) => (
+                  <ErrorBoundary key={view.key} label={view.symbol ?? "This Machine"} wrap={wrapRow}>
+                    <MachineRow view={view} dimmed={erroredInstances.has(view.data.instanceId)} />
+                  </ErrorBoundary>
                 ))}
-            </TableBody>
-          </Table>
-        </Card>
-      )}
+                {rows.length === 0 &&
+                  loading &&
+                  [0, 1, 2, 3, 4].map((i) => (
+                    <TableRow key={i}>
+                      <TableCell colSpan={9}>
+                        <Skeleton className="h-8" />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          </Card>
+        )}
+      </div>
 
       {rows.length === 0 && !loading && (
         <p className="text-muted-foreground py-8 text-center text-sm">

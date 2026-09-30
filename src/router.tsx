@@ -1,6 +1,7 @@
 import { createHashRouter } from "react-router";
 
 import { Layout } from "@/components/layout";
+import { AboutPage } from "@/pages/about";
 import { ExplorePage } from "@/pages/explore";
 import { MachinePage } from "@/pages/machine";
 import { NotFoundPage } from "@/pages/not-found";
@@ -17,6 +18,7 @@ export const router = createHashRouter([
       { index: true, element: <ExplorePage /> },
       { path: "machine/:chainId/:address", element: <MachinePage /> },
       { path: "portfolio", element: <PortfolioPage /> },
+      { path: "about", element: <AboutPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],
   },
