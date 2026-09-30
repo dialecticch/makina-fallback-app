@@ -114,7 +114,7 @@ IPFS. `file://` does not work (browsers block module scripts there, and wallets 
   on the same origin could read its settings and cached data.
 - When serving under a subpath, link to it with a trailing slash (`/app/`, not `/app`).
 - Send these headers (the meta CSP cannot carry `frame-ancestors`). The build writes them to `dist/_headers`, which
-  Cloudflare Pages and Netlify apply automatically:
+  Cloudflare Pages and Netlify apply automatically, and `vercel.json` sets them on Vercel:
 
   ```
   Content-Security-Policy: frame-ancestors 'none'

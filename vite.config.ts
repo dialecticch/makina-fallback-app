@@ -7,7 +7,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 
-import { LOCAL_RPC_HOSTS } from "./src/config/app.ts";
+import { HOST_HEADERS, LOCAL_RPC_HOSTS } from "./src/config/app.ts";
 
 const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8")) as { version: string };
 
@@ -44,14 +44,6 @@ const CONTENT_SECURITY_POLICY = [
   "base-uri 'none'",
   "form-action 'none'",
 ].join("; ");
-
-/** Headers a host should send (README, Hosting); `pnpm start` and `pnpm dev` send them too. */
-const HOST_HEADERS = {
-  "Content-Security-Policy": "frame-ancestors 'none'",
-  "X-Frame-Options": "DENY",
-  "X-Content-Type-Options": "nosniff",
-  "Referrer-Policy": "no-referrer",
-};
 
 /** Adds the CSP to the built index.html only: the dev server needs inline scripts and ws:// for HMR. */
 function contentSecurityPolicy(): Plugin {

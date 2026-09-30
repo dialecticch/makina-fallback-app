@@ -26,6 +26,18 @@ export const SLIPPAGE_BPS = { default: 50, min: 10, max: 500, presets: [10, 50, 
  */
 export const LOCAL_RPC_HOSTS = ["localhost", "127.0.0.1"] as const;
 
+/**
+ * HTTP headers every host should send (README, Hosting): `pnpm start` and `pnpm dev` send them, the build writes
+ * them to `dist/_headers` (Cloudflare Pages, Netlify), and vercel.json repeats them (a unit test keeps it in sync).
+ * `frame-ancestors` only works as a header, not in the page's meta CSP.
+ */
+export const HOST_HEADERS: Record<string, string> = {
+  "Content-Security-Policy": "frame-ancestors 'none'",
+  "X-Frame-Options": "DENY",
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "no-referrer",
+};
+
 /** Deep link to a strategy in the main Makina app, built from the share token symbol. */
 export function makinaAppStrategyUrl(symbol: string) {
   return `${APP.makinaApp}/strategy/${encodeURIComponent(symbol)}`;
