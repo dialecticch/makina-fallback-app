@@ -1,0 +1,50 @@
+{
+  "$comment": "Vendored ABI sources, never hand-edited. To update: bump a commit, run scripts/update-abis.sh, review `git diff src/abis`, run the fork tests.",
+  "foundry": "1.8.3",
+  "repos": [
+    {
+      "name": "makina-core",
+      "url": "https://github.com/MakinaHQ/makina-core.git",
+      "tag": "v1.3.0",
+      "commit": "eb9a2fea6cac9f88783f9c769927ed7e5c2b7fd5",
+      "contracts": [
+        { "source": "src/interfaces/IHubCoreRegistry.sol:IHubCoreRegistry", "name": "HubCoreRegistry" },
+        { "source": "src/interfaces/IHubCoreFactory.sol:IHubCoreFactory", "name": "HubCoreFactory" },
+        { "source": "src/interfaces/IMachine.sol:IMachine", "name": "Machine" },
+        { "source": "src/interfaces/IMachineShare.sol:IMachineShare", "name": "MachineShare" },
+        { "source": "src/libraries/Errors.sol:Errors", "name": "CoreErrors" },
+        {
+          "source": "lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/interfaces/draft-IERC6093.sol:IERC20Errors",
+          "name": "Erc20Errors"
+        },
+        {
+          "source": "lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/interfaces/draft-IERC6093.sol:IERC721Errors",
+          "name": "Erc721Errors"
+        },
+        {
+          "source": "lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol:SafeERC20",
+          "name": "SafeErc20Errors"
+        }
+      ]
+    },
+    {
+      "name": "makina-periphery",
+      "url": "https://github.com/MakinaHQ/makina-periphery.git",
+      "tag": "v1.3.0",
+      "commit": "72aab70ea8dcedba4658cd339dd07022e28ca1b2",
+      "contracts": [
+        { "source": "src/depositors/DirectDepositor.sol:DirectDepositor", "name": "DirectDepositor" },
+        { "source": "src/redeemers/AsyncRedeemer.sol:AsyncRedeemer", "name": "AsyncRedeemer" },
+        { "source": "src/redeemers/AsyncRedeemerFee.sol:AsyncRedeemerFee", "name": "AsyncRedeemerFee" },
+        { "source": "src/interfaces/IWatermarkFeeManager.sol:IWatermarkFeeManager", "name": "WatermarkFeeManager" },
+        { "source": "src/interfaces/IHubPeripheryRegistry.sol:IHubPeripheryRegistry", "name": "HubPeripheryRegistry" },
+        { "source": "src/interfaces/IHubPeripheryFactory.sol:IHubPeripheryFactory", "name": "HubPeripheryFactory" },
+        {
+          "source": "src/interfaces/IChainalysisSanctionsList.sol:IChainalysisSanctionsList",
+          "name": "SanctionsOracle"
+        },
+        { "source": "src/libraries/Errors.sol:Errors", "name": "PeripheryErrors" }
+      ]
+    }
+  ]
+}

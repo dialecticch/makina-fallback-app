@@ -1,0 +1,33 @@
+MIT License
+
+Copyright (c) 2026 Makina Fallback App contributors
+Copyright (c) 2025 Morpho Association
+
+Portions of this software are derived from morpho-org/morpho-lite-apps
+(https://github.com/morpho-org/morpho-lite-apps, commit 54abf77e8fc6398cbb117dd12f5d9efd202fd7c8), taken only
+from its MIT-licensed parts (apps/fallback and packages/uikit): src/components/ui/*,
+src/components/{chain-icon,footer,header,token-amount-input,wallet-menu,welcome-modal}.tsx,
+src/hooks/{use-debounced-memo,use-local-storage,use-mobile}.ts, src/lib/{utils,wagmi-config}.ts, src/App.tsx
+and src/main.tsx. All of them have since been modified.
+
+Trademarks: this licence covers the code, not names or logos. The Makina name and logo (public/brand) and the
+network logos (src/assets/chains) belong to their owners; forks that are not operated by Makina must replace
+them.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

@@ -1,0 +1,109 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Makina Design System palette (MakinaHQ/docs theme), mapped onto the shadcn variables. */
+:root {
+  --makina-teal: #0891b2;
+  --makina-green: #91ce59;
+  --makina-yellow: #ecbb3e;
+  --makina-red: #f64646;
+
+  --background: #e3e3e3;
+  --foreground: #1e293b;
+  --card: #f1f1f1;
+  --card-foreground: #1e293b;
+  --popover: #f1f1f1;
+  --popover-foreground: #1e293b;
+  /* Buttons use the docs' darker link-hover teal so white text keeps a 4.5:1 contrast. */
+  --primary: #0779a0;
+  --primary-foreground: #ffffff;
+  --secondary: #e9e9e9;
+  --secondary-foreground: #1e293b;
+  --muted: #e9e9e9;
+  --muted-foreground: #6b6b7b;
+  --accent: #e9e9e9;
+  --accent-foreground: #1e293b;
+  --brand: var(--makina-teal);
+  --success: #4d7c22;
+  --warning: #8a6508;
+  --destructive: #c62828;
+  --destructive-foreground: #ffffff;
+  --border: #dddddd;
+  --input: #dddddd;
+  --ring: var(--makina-teal);
+  --radius: 0.6rem;
+}
+
+.dark {
+  --makina-teal: #3dc9de;
+
+  --background: #0f172a;
+  --foreground: #ecfeff;
+  --card: #1e293b;
+  --card-foreground: #ecfeff;
+  --popover: #1e293b;
+  --popover-foreground: #ecfeff;
+  --primary: #3dc9de;
+  --primary-foreground: #0f172a;
+  --secondary: #243044;
+  --secondary-foreground: #ecfeff;
+  --muted: #172033;
+  --muted-foreground: #7e8b95;
+  --accent: #243044;
+  --accent-foreground: #ecfeff;
+  --brand: var(--makina-teal);
+  --success: var(--makina-green);
+  --warning: var(--makina-yellow);
+  --destructive: var(--makina-red);
+  --destructive-foreground: #0f172a;
+  --border: #273243;
+  --input: #273243;
+  --ring: var(--makina-teal);
+}
+
+@theme inline {
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-brand: var(--brand);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  /* Visible focus for every keyboard-reachable control. */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+}

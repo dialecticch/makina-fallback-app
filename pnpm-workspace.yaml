@@ -1,0 +1,27 @@
+# Supply-chain settings (see README, Dependencies). This is a single-package repo: with no
+# `packages` field, pnpm treats the root package as the whole workspace.
+
+# New versions must be at least 7 days old before they can be installed.
+minimumReleaseAge: 10080
+# Transitive dependencies may not come from git repositories or tarball URLs.
+blockExoticSubdeps: true
+# Fail the install when a dependency has an install script that is not listed in `allowBuilds`.
+strictDepBuilds: true
+# Refuse a version published with weaker provenance than an earlier version of the same package.
+trustPolicy: no-downgrade
+# Exact versions only, each with its reason (also listed in README.md, Dependencies):
+# - semver@6.3.1: July 2023 backport of the CVE-2022-25883 fix, published after the provenance-signed
+#   7.5.x line, so pnpm reads the older major as a downgrade. Dev-only (via @babel/core).
+trustPolicyExclude:
+  - semver@6.3.1
+# Exact versions only.
+savePrefix: ""
+# Refuse to install on Node versions outside `engines` (package.json). The range is the intersection of what
+# every locked package declares; recompute it when bumping dependencies (CONTRIBUTING.md).
+engineStrict: true
+# Peers are declared explicitly in package.json. Auto-installing them also pulls optional peers nobody uses
+# (vitest's jsdom and its ~40 packages).
+autoInstallPeers: false
+
+# Install scripts are denied by default. Every entry must be documented in README.md (Dependencies).
+allowBuilds: {}

@@ -1,0 +1,15 @@
+node_modules
+dist
+coverage
+*.tsbuildinfo
+
+# Local configuration and secrets
+.env.local
+.env.*.local
+.claude/settings.local.json
+.claude/launch.json
+
+# Reference checkouts and ABI build cache (scripts/update-abis.sh)
+.cache
+
+.DS_Store
