@@ -13,14 +13,17 @@ import { type ApprovalNeed, type Plan, type TxRequest, tx } from "@/actions/plan
 import { verifyTargets, walletReader } from "@/actions/verify";
 import { ALL_ERRORS_ABI, isContractRevert } from "@/lib/errors";
 
+/** `progress` is "1/2" when the plan sends more than one transaction, so the user sees there is another to sign. */
+type Step = { label: string; progress?: string };
+
 export type ExecuteEvent =
   | { type: "verifying" }
-  | { type: "simulating"; label: string }
-  | { type: "awaitingSignature"; label: string }
-  | { type: "sent"; label: string; hash: Hash }
+  | ({ type: "simulating" } & Step)
+  | ({ type: "awaitingSignature" } & Step)
+  | ({ type: "sent"; hash: Hash } & Step)
   /** Still not mined after a while: keep waiting (the button stays busy, so it cannot be sent twice). */
-  | { type: "slow"; label: string; hash: Hash }
-  | { type: "confirmed"; label: string; receipt: TransactionReceipt };
+  | ({ type: "slow"; hash: Hash } & Step)
+  | ({ type: "confirmed"; receipt: TransactionReceipt } & Step);
 
 export class FlowCancelled extends Error {}
 
@@ -101,9 +104,8 @@ export async function executePlan(
   let last: TransactionReceipt | undefined;
   for (const [i, step] of steps.entries()) {
     check();
-    // "Approve USDC (1/2)", so the user sees there is a second transaction to sign.
-    const label = steps.length > 1 ? `${step.label} (${i + 1}/${steps.length})` : step.label;
-    onEvent?.({ type: "simulating", label });
+    const at: Step = { label: step.label, progress: steps.length > 1 ? `${i + 1}/${steps.length}` : undefined };
+    onEvent?.({ type: "simulating", ...at });
     const { request } = await reader.simulateContract({
       account,
       address: step.address,
@@ -115,19 +117,13 @@ export async function executePlan(
     } as never);
     check();
 
-    onEvent?.({ type: "awaitingSignature", label: step.label });
+    onEvent?.({ type: "awaitingSignature", ...at });
     const hash = await writeContract(config, { ...(request as object), chainId } as never);
-    onEvent?.({ type: "sent", label: step.label, hash });
+    onEvent?.({ type: "sent", ...at, hash });
 
-    const receipt = await waitForReceipt(
-      config,
-      chainId,
-      hash,
-      () => onEvent?.({ type: "slow", label: step.label, hash }),
-      check,
-    );
+    const receipt = await waitForReceipt(config, chainId, hash, () => onEvent?.({ type: "slow", ...at, hash }), check);
     if (receipt.status !== "success") throw new Error(`${step.label} reverted on-chain (${hash}).`);
-    onEvent?.({ type: "confirmed", label: step.label, receipt });
+    onEvent?.({ type: "confirmed", ...at, receipt });
     args.onStepConfirmed?.();
     last = receipt;
   }

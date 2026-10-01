@@ -6,16 +6,24 @@ import { Button } from "@/components/ui/button";
 import { explorerUrl } from "@/config/chains";
 import type { PreCheckResult } from "@/lib/pre-checks";
 
-function busyLabel(state: FlowState) {
+const STEP_STATUS = {
+  simulating: { full: "checking…", compact: "Checking…" },
+  awaitingSignature: { full: "confirm in your wallet", compact: "Sign in wallet" },
+  pending: { full: "pending…", compact: "Pending…" },
+} as const;
+
+/** "Approve USDC (1/2): confirm in your wallet", or just "Sign in wallet 1/2" on a small button (table cells). */
+function busyLabel(state: FlowState, compact: boolean) {
   switch (state.status) {
     case "verifying":
-      return "Verifying contracts…";
+      return compact ? "Verifying…" : "Verifying contracts…";
     case "simulating":
-      return `${state.label}: checking…`;
     case "awaitingSignature":
-      return `${state.label}: confirm in your wallet`;
-    case "pending":
-      return `${state.label}: pending…`;
+    case "pending": {
+      const status = STEP_STATUS[state.status];
+      if (compact) return state.progress ? `${status.compact} ${state.progress}` : status.compact;
+      return `${state.label}${state.progress ? ` (${state.progress})` : ""}: ${status.full}`;
+    }
     default:
       return undefined;
   }
@@ -49,16 +57,28 @@ export function ActionButton({
   const chains = useChains();
   const chain = chains.find((c) => c.id === chainId);
   const { mutate: switchChain, isPending: switching } = useSwitchChain();
-  const busy = busyLabel(state);
+  // Small buttons sit in table cells: short labels, the full one as a tooltip.
+  const compact = size === "sm";
+  const busy = busyLabel(state, compact);
   const pendingHref = state.status === "pending" ? explorerUrl(chain, "tx", state.hash) : undefined;
   const confirmedHref = state.status === "confirmed" ? explorerUrl(chain, "tx", state.hash) : undefined;
+  const switchLabel = `Switch to ${chain?.name ?? `chain ${chainId}`}`;
 
+  // The label truncates and the lines below wrap: text spilling out of a table cell would make the table scroll.
   if (!check.ok && check.fix === "switchChain") {
     return (
-      <div className="flex flex-col gap-1.5">
-        <Button size={size} className="w-full" onClick={() => switchChain({ chainId })} disabled={switching}>
+      <div className="flex flex-col gap-1.5 break-words">
+        <Button
+          size={size}
+          className="w-full"
+          onClick={() => switchChain({ chainId })}
+          disabled={switching}
+          title={compact ? switchLabel : undefined}
+        >
           {switching && <Loader className="animate-spin" aria-hidden />}
-          Switch to {chain?.name ?? `chain ${chainId}`}
+          <span className="min-w-0 truncate">
+            {!compact ? switchLabel : switching ? "Switching…" : "Switch network"}
+          </span>
         </Button>
         <p className="text-muted-foreground text-xs">{check.reason}</p>
       </div>
@@ -67,10 +87,16 @@ export function ActionButton({
 
   const reason = !check.ok ? check.reason : blocker;
   return (
-    <div className="flex flex-col gap-1.5">
-      <Button size={size} className="w-full" onClick={onClick} disabled={!!reason || !!busy}>
+    <div className="flex flex-col gap-1.5 break-words">
+      <Button
+        size={size}
+        className="w-full"
+        onClick={onClick}
+        disabled={!!reason || !!busy}
+        title={compact && busy ? busyLabel(state, false) : undefined}
+      >
         {busy && <Loader className="animate-spin" aria-hidden />}
-        {busy ?? children}
+        <span className="min-w-0 truncate">{busy ?? children}</span>
       </Button>
       {reason && !busy && <p className="text-muted-foreground text-xs">{reason}</p>}
       {note && !reason && !busy && <p className="text-muted-foreground text-xs">{note}</p>}
@@ -86,7 +112,7 @@ export function ActionButton({
           rel="noreferrer"
           className="text-brand inline-flex items-center gap-1 text-xs"
         >
-          View pending transaction <ExternalLink className="size-3" aria-hidden />
+          View transaction <ExternalLink className="size-3" aria-hidden />
         </a>
       )}
       {state.status === "confirmed" && (
