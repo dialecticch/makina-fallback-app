@@ -84,7 +84,9 @@ reorged, so later visits only fetch new blocks.
    match what the app showed, `shareToken.minter() == machine`, the depositor or redeemer points back at the Machine,
    and Makina's periphery factory created it. Any mismatch stops the flow before anything is signed.
 2. **Approvals:** exactly the amount, only when the live allowance is lower; a reset to 0 first only when approving
-   directly reverts (USDT-style tokens).
+   directly reverts (USDT-style tokens). The deposit and redemption forms send the approval as its own click first
+   (`useApprovalStep`, with `approvalOnly(plan)`); the action's plan still includes it, so a stale allowance read
+   can never skip one.
 3. **Each step:** simulated from the account through the wallet's provider, sent with the chain ID (a wallet on
    another network is refused before signing), then awaited. A slow receipt keeps the flow pending (never "failed"),
    a speed-up is followed, a cancellation in the wallet stops it.

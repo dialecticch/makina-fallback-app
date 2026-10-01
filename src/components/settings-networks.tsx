@@ -301,8 +301,7 @@ export function RpcPanel() {
       )}
       {fromInstances > 0 && (
         <p className="text-muted-foreground text-xs">
-          Plus {fromInstances} RPC{fromInstances === 1 ? "" : "s"} from the custom hub you added on this network (remove
-          the hub under Hub networks to drop them).
+          Plus {fromInstances} RPC{fromInstances === 1 ? "" : "s"} from your custom hub on this network.
         </p>
       )}
       <Button

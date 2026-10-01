@@ -101,7 +101,10 @@ export function AboutPage() {
             Every address a transaction uses is re-read through your wallet&apos;s own RPC and must match what the app
             shows; otherwise nothing is sent.
           </li>
-          <li>Approvals are for exactly the amount of the action, to the address shown before your wallet opens.</li>
+          <li>
+            An approval is its own step, for exactly the amount of the action, to the address shown before your wallet
+            opens.
+          </li>
           <li>The receiver of every deposit, redemption and claim is the connected account.</li>
           <li>Each transaction is simulated first; a revert is explained next to the button.</li>
           <li>Viewing another address is read-only: nothing can be signed.</li>

@@ -125,7 +125,7 @@ function ClaimableSection({ rows }: { rows: RequestRow[] }) {
     },
   ];
   return (
-    <Section title="Claimable redemptions" description="Finalized by the mechanic: the amounts below are fixed.">
+    <Section title="Claimable redemptions">
       {rows.length > 1 && (
         <div className="flex justify-end px-3 pb-2">
           <ClaimAllButton rows={rows} />
@@ -286,10 +286,7 @@ function PendingSection({ rows, now }: { rows: RequestRow[]; now: bigint }) {
     },
   ];
   return (
-    <Section
-      title="Pending redemptions"
-      description="Estimates use the current share price. The final amount can only be equal or lower."
-    >
+    <Section title="Pending redemptions" description="Final amounts can be lower than the estimates, never higher.">
       <FitTable columns={columns} rows={rows} rowKey={(r) => `${r.request.redeemer}:${r.request.id}`} />
     </Section>
   );
@@ -375,14 +372,14 @@ function ActivitySection({
   ];
 
   return (
-    <Section title="Activity" description="Deposits, redemption requests and claims to this address, newest first.">
+    <Section title="Activity">
       {!activity.started ? (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 pb-2">
           <Button size="sm" variant="outline" onClick={activity.load}>
             Load activity
           </Button>
           <span className="text-muted-foreground text-xs">
-            A minute or two per network on public RPCs the first time. <LearnMore topic="data" />
+            Takes a minute or two the first time. <LearnMore topic="data" />
           </span>
         </div>
       ) : activity.loading ? (
