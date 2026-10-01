@@ -43,7 +43,17 @@ export function useTransactionFlow({ chainId, account }: { chainId: number; acco
   }, [queryClient, chainId]);
 
   const run = useCallback(
-    async (plan: Plan, { onReceipt }: { onReceipt?: (receipt: TransactionReceipt) => string | void } = {}) => {
+    async (
+      plan: Plan,
+      {
+        onReceipt,
+        onNothingToSend,
+      }: {
+        onReceipt?: (receipt: TransactionReceipt) => string | void;
+        /** The plan had nothing left to send (an approval the wallet's RPC already sees). */
+        onNothingToSend?: () => void;
+      } = {},
+    ) => {
       if (!account) return;
       const myRun = ++runId.current;
       const mine = () => runId.current === myRun;
@@ -64,7 +74,13 @@ export function useTransactionFlow({ chainId, account }: { chainId: number; acco
               setState({ status: "pending", label: event.label, hash: event.hash, slow: true });
           },
         });
-        if (!mine() || !receipt) return;
+        if (!mine()) return;
+        if (!receipt) {
+          setState({ status: "idle" });
+          onNothingToSend?.();
+          refreshChain();
+          return;
+        }
         const message = onReceipt?.(receipt);
         setState({ status: "confirmed", hash: receipt.transactionHash, message: message || undefined });
       } catch (error) {

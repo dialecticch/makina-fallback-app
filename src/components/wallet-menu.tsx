@@ -41,10 +41,7 @@ function ConnectWalletButton() {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Connect wallet</DialogTitle>
-          <DialogDescription>
-            This is the Makina fallback app, not the main Makina interface. It only asks your wallet to sign
-            transactions. Detected browser wallets:
-          </DialogDescription>
+          <DialogDescription>Wallets found in this browser:</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-2">
           {connectors.length === 0 && (

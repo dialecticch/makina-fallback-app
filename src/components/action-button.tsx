@@ -9,7 +9,7 @@ import type { PreCheckResult } from "@/lib/pre-checks";
 function busyLabel(state: FlowState) {
   switch (state.status) {
     case "verifying":
-      return "Checking the contracts with your wallet…";
+      return "Verifying contracts…";
     case "simulating":
       return `${state.label}: checking…`;
     case "awaitingSignature":
@@ -76,8 +76,7 @@ export function ActionButton({
       {note && !reason && !busy && <p className="text-muted-foreground text-xs">{note}</p>}
       {state.status === "pending" && state.slow && (
         <p role="status" className="text-warning text-xs">
-          Still pending after a few minutes. It will confirm here once mined; if your wallet dropped or replaced it,
-          reload the page before trying again.
+          Still pending. If your wallet dropped it, reload before retrying.
         </p>
       )}
       {pendingHref && (

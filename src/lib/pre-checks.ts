@@ -57,30 +57,29 @@ export function preCheckFor(action: ActionKind, view: MachineView, ctx: PreCheck
   if (action !== "wrap") {
     // Claims need no approval and pay the NFT's owner, so they stay possible on a locked hub.
     if ((action === "deposit" || action === "redeem") && !data.verifiedHub && !ctx.hubUnlocked) {
-      return fail("hubLocked", "This hub is not built into this release: unlock it first (see above).", "unlock");
+      return fail("hubLocked", "Unlock this hub first (see above).", "unlock");
     }
     if ((action === "deposit" || action === "redeem") && data.recoveryMode) {
-      return fail("recoveryMode", "The Machine is in recovery mode. Only claiming finalized requests is possible.");
+      return fail("recoveryMode", "Recovery mode: only claims are possible.");
     }
     const deposit = action === "deposit";
     const contract = deposit ? data.depositor : data.redeemer;
     const supported = deposit ? view.depositorSupported : view.redeemerSupported;
     if (contract === zeroAddress) return fail("closed", CLOSED[action]);
     if (contract === undefined || supported === undefined) {
-      return fail("notLoaded", "Contract details are not loaded yet. Refresh if this persists.");
+      return fail("notLoaded", "Contract details not loaded yet.");
     }
-    if (!supported)
-      return fail("unsupported", "This contract type is not supported by this app, so it is read-only here.");
+    if (!supported) return fail("unsupported", "Unsupported contract type: read-only here.");
     const info = deposit ? data.depositorInfo : data.redeemerInfo;
     const whitelisted = deposit ? ctx.user?.depositorWhitelisted : ctx.user?.redeemerWhitelisted;
     const sanctioned = deposit ? ctx.user?.depositorSanctioned : ctx.user?.redeemerSanctioned;
     if (info.isWhitelistEnabled && whitelisted === false) {
-      return fail("notWhitelisted", "This Machine is whitelisted and this address is not on the list.");
+      return fail("notWhitelisted", "This address is not on this Machine's whitelist.");
     }
     if (info.isSanctionsCheckEnabled && sanctioned) return fail("sanctioned", "This address cannot use this Machine.");
   }
   if (ctx.nativeBalance !== undefined && ctx.nativeBalance === 0n) {
-    return fail("noGas", `You need some ${ctx.chainName} gas token to send a transaction.`);
+    return fail("noGas", `You need gas on ${ctx.chainName}.`);
   }
   return { ok: true };
 }

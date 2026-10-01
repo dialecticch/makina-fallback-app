@@ -99,9 +99,11 @@ export async function executePlan(
     ...plan.steps,
   ];
   let last: TransactionReceipt | undefined;
-  for (const step of steps) {
+  for (const [i, step] of steps.entries()) {
     check();
-    onEvent?.({ type: "simulating", label: step.label });
+    // "Approve USDC (1/2)", so the user sees there is a second transaction to sign.
+    const label = steps.length > 1 ? `${step.label} (${i + 1}/${steps.length})` : step.label;
+    onEvent?.({ type: "simulating", label });
     const { request } = await reader.simulateContract({
       account,
       address: step.address,

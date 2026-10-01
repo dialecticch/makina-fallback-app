@@ -37,7 +37,7 @@ function WrapEthForm({
 
   const blocker =
     amount === undefined || amount === 0n
-      ? "Enter an amount of ETH to wrap."
+      ? "Enter an amount."
       : maxWrap !== undefined && amount > maxWrap
         ? `Keep at least ${reserve} ETH for gas.`
         : undefined;
@@ -46,9 +46,7 @@ function WrapEthForm({
     <details className="rounded-lg border p-3">
       <summary className="cursor-pointer text-sm font-medium">Wrap ETH into WETH</summary>
       <div className="mt-3 flex flex-col gap-3">
-        <p className="text-muted-foreground text-xs">
-          This Machine takes WETH. Wrapping keeps {reserve} ETH back for gas. There is no unwrap here.
-        </p>
+        <p className="text-muted-foreground text-xs">Keeps {reserve} ETH for gas. No unwrap here.</p>
         <TokenAmountInput
           id={`wrap-${view.data.machine}`}
           label="You wrap"
