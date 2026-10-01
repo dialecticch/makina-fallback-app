@@ -7,12 +7,14 @@ import { executePlan, FlowCancelled } from "@/actions/execute";
 import type { Plan } from "@/actions/plans";
 import { decodeRevert } from "@/lib/errors";
 
+type Step = { label: string; progress?: string };
+
 export type FlowState =
   | { status: "idle" }
   | { status: "verifying" }
-  | { status: "simulating"; label: string }
-  | { status: "awaitingSignature"; label: string }
-  | { status: "pending"; label: string; hash: Hash; slow?: boolean }
+  | ({ status: "simulating" } & Step)
+  | ({ status: "awaitingSignature" } & Step)
+  | ({ status: "pending"; hash: Hash; slow?: boolean } & Step)
   | { status: "confirmed"; hash: Hash; message?: string }
   | { status: "failed"; message: string };
 
@@ -66,12 +68,12 @@ export function useTransactionFlow({ chainId, account }: { chainId: number; acco
           onStepConfirmed: refreshChain,
           onEvent: (event) => {
             if (!mine()) return;
-            if (event.type === "verifying") setState({ status: "verifying" });
-            if (event.type === "simulating") setState({ status: "simulating", label: event.label });
-            if (event.type === "awaitingSignature") setState({ status: "awaitingSignature", label: event.label });
-            if (event.type === "sent") setState({ status: "pending", label: event.label, hash: event.hash });
-            if (event.type === "slow")
-              setState({ status: "pending", label: event.label, hash: event.hash, slow: true });
+            if (event.type === "verifying") return setState({ status: "verifying" });
+            const step = { label: event.label, progress: event.progress };
+            if (event.type === "simulating") setState({ status: "simulating", ...step });
+            if (event.type === "awaitingSignature") setState({ status: "awaitingSignature", ...step });
+            if (event.type === "sent") setState({ status: "pending", ...step, hash: event.hash });
+            if (event.type === "slow") setState({ status: "pending", ...step, hash: event.hash, slow: true });
           },
         });
         if (!mine()) return;
