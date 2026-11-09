@@ -80,6 +80,10 @@ jobs:
     name: Fork tests and on-chain assumptions
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    # One fork job at a time across all branches: a PR run and a main run must not share the archive RPC's limits.
+    concurrency:
+      group: fork-tests
+      cancel-in-progress: false
     steps:
       - name: Check for fork RPC secrets
         id: secrets

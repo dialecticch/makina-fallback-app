@@ -85,6 +85,12 @@ export default async function setup(project: TestProject) {
         "--port",
         String(fork.port),
         "--auto-impersonate",
+        // Upstream hiccups (rate limits, timeouts) must be retried: a failed fetch would otherwise surface as an
+        // empty read inside a multicall, which the app tolerates by design, and make a test flaky.
+        "--retries",
+        "10",
+        "--fork-retry-backoff",
+        "1000",
         "--silent",
       ],
       { stdio: "ignore" },
