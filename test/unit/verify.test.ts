@@ -2,6 +2,7 @@ import { type Address, BaseError, ContractFunctionRevertedError, erc20Abi } from
 import { describe, expect, it, vi } from "vitest";
 
 import { approvalSteps } from "@/actions/execute";
+import { needsApproval } from "@/actions/use-approval-step";
 import { type PlanTargets, TargetMismatch, verifyTargets } from "@/actions/verify";
 
 const A = (n: number) => `0x${n.toString(16).padStart(40, "0")}` as Address;
@@ -129,5 +130,19 @@ describe("approvalSteps", () => {
       simulateContract: vi.fn(async () => Promise.reject(new Error("HTTP 429"))),
     };
     await expect(approvalSteps(r as never, { account, need })).rejects.toThrow("HTTP 429");
+  });
+});
+
+describe("needsApproval (what the form announces)", () => {
+  it("is unknown until both the allowance and the amount are", () => {
+    expect(needsApproval(undefined, 100n)).toBeUndefined();
+    expect(needsApproval(0n, undefined)).toBeUndefined();
+    expect(needsApproval(0n, 0n)).toBeUndefined();
+  });
+
+  it("is needed only when the allowance is below the amount", () => {
+    expect(needsApproval(99n, 100n)).toBe(true);
+    expect(needsApproval(100n, 100n)).toBe(false);
+    expect(needsApproval(500n, 100n)).toBe(false);
   });
 });

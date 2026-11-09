@@ -5,6 +5,7 @@ import { useReadContract } from "wagmi";
 import { asyncRedeemerFeeAbi, machineAbi } from "@/abis";
 import { requestRedeemPlan } from "@/actions/plans";
 import { type ActionContext, useActionContext } from "@/actions/use-action-context";
+import { useApprovalStep } from "@/actions/use-approval-step";
 import { useTransactionFlow } from "@/actions/use-transaction-flow";
 import { ActionButton } from "@/components/action-button";
 import { Amount } from "@/components/amount";
@@ -59,12 +60,15 @@ function RequestRedeemFields({ view, ctx }: { view: MachineView; ctx: ActionCont
   const estimate = gross === undefined ? undefined : lessRedeemFee(gross, feeRate);
   const minAssets = estimate === undefined ? undefined : applySlippage(estimate, slippageBps);
 
+  const symbol = view.symbol ?? "shares";
+  const approval = useApprovalStep(flow, ctx.user?.redeemAllowance, shares);
+
   const min = data.redeemerInfo.minRedeemAmount;
   const blocker =
     shares === undefined || shares === 0n
-      ? "Enter an amount of shares."
+      ? "Enter an amount."
       : ctx.user?.shares !== undefined && shares > ctx.user.shares
-        ? `You hold fewer ${view.symbol ?? "shares"} than that.`
+        ? `You hold fewer ${symbol} than that.`
         : min !== undefined && shares < min
           ? "Below this Machine's minimum redemption."
           : estimate === undefined
@@ -86,7 +90,7 @@ function RequestRedeemFields({ view, ctx }: { view: MachineView; ctx: ActionCont
       slippageBps,
       symbol: view.symbol,
     });
-    void flow.run(plan, {
+    approval.run(plan, {
       onReceipt: (receipt) => {
         setText("");
         const created = parseEventLogs({
@@ -94,9 +98,7 @@ function RequestRedeemFields({ view, ctx }: { view: MachineView; ctx: ActionCont
           eventName: "RedeemRequestCreated",
           logs: receipt.logs,
         }).find((l) => isAddressEqual(l.address, redeemer));
-        return created
-          ? `Redemption request #${created.args.requestId} created. It now appears in Portfolio.`
-          : undefined;
+        return created ? `Request #${created.args.requestId} created.` : undefined;
       },
     });
   };
@@ -136,12 +138,13 @@ function RequestRedeemFields({ view, ctx }: { view: MachineView; ctx: ActionCont
             decimals={view.shareDecimals}
             symbol={view.symbol}
             spender={data.redeemer}
-            role="the Machine's redeemer"
+            role="the redeemer"
+            needed={approval.needed}
           />
         )}
       </div>
       <p className="text-muted-foreground text-xs">
-        At finalization you receive the lower of this value and the value then. <LearnMore topic="slippage" />
+        The final amount can be lower, never higher. <LearnMore topic="slippage" />
       </p>
 
       <ActionButton
@@ -151,7 +154,7 @@ function RequestRedeemFields({ view, ctx }: { view: MachineView; ctx: ActionCont
         state={flow.state}
         onClick={() => (acknowledged[ackKey] ? submit() : setConfirmOpen(true))}
       >
-        Request redemption
+        {approval.needed ? `Approve ${symbol}` : "Request redemption"}
       </ActionButton>
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
@@ -160,19 +163,16 @@ function RequestRedeemFields({ view, ctx }: { view: MachineView; ctx: ActionCont
             <DialogTitle>Redemptions go through a queue</DialogTitle>
             <DialogDescription asChild>
               <ul className="flex list-disc flex-col gap-2 pl-5">
-                <li>Your request joins this Machine&apos;s redemption queue and you receive an NFT for it.</li>
+                <li>Your request joins the queue, as an NFT.</li>
                 <li>
-                  The Machine&apos;s mechanic must finalize it, at the earliest{" "}
+                  The mechanic finalizes it, at the earliest{" "}
                   {data.redeemerInfo.finalizationDelay === undefined
                     ? "after the finalization delay"
-                    : `${formatDuration(data.redeemerInfo.finalizationDelay)} from now`}
-                  . This app cannot speed that up.
+                    : `in ${formatDuration(data.redeemerInfo.finalizationDelay)}`}
+                  .
                 </li>
-                <li>
-                  You then receive the lower of the value now and the value at finalization. If the Machine loses value
-                  in between, so does your redemption.
-                </li>
-                <li>Once finalized, claim it from Portfolio.</li>
+                <li>You receive the lower of its value now and at finalization.</li>
+                <li>Then claim it from Portfolio.</li>
               </ul>
             </DialogDescription>
           </DialogHeader>

@@ -11,7 +11,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { asyncRedeemerAbi, machineAbi } from "@/abis";
 import { type ExecuteEvent, executePlan } from "@/actions/execute";
-import { claimPlan, depositPlan, requestRedeemPlan, wrapPlan } from "@/actions/plans";
+import { approvalOnly, claimPlan, depositPlan, requestRedeemPlan, wrapPlan } from "@/actions/plans";
 import { BUILTIN_INSTANCES } from "@/config/instances";
 import { scanActivity } from "@/data/activity";
 import { fetchMachineData } from "@/data/fetch-machine-data";
@@ -107,16 +107,19 @@ describe.skipIf(forkSkip)("Ethereum hub (fork)", () => {
     });
     const receipts: TransactionReceipt[] = [];
     const onEvent = (e: ExecuteEvent) => e.type === "confirmed" && receipts.push(e.receipt);
-    await executePlan(config, {
-      chainId: 1,
-      account: TEST_ACCOUNT,
-      plan: depositPlan({ machine: dusd, hub, account: TEST_ACCOUNT, assets, shares, slippageBps: 50 }),
-      onEvent,
-    });
-    expect(receipts).toHaveLength(2); // approve + deposit
+    const plan = depositPlan({ machine: dusd, hub, account: TEST_ACCOUNT, assets, shares, slippageBps: 50 });
+
+    // As the form does it: the approval on its own click, then the deposit on the next.
+    await executePlan(config, { chainId: 1, account: TEST_ACCOUNT, plan: approvalOnly(plan), onEvent });
+    expect(receipts).toHaveLength(1);
     const approval = parseEventLogs({ abi: erc20Abi, eventName: "Approval", logs: receipts[0]!.logs })[0]!;
     expect(approval.args.value).toBe(assets); // exact-amount approval
     expect(getAddress(approval.args.spender)).toBe(getAddress(dusd.depositor!));
+    // A second approval click sends nothing: the allowance is re-read through the wallet first.
+    expect(await executePlan(config, { chainId: 1, account: TEST_ACCOUNT, plan: approvalOnly(plan) })).toBeUndefined();
+
+    await executePlan(config, { chainId: 1, account: TEST_ACCOUNT, plan, onEvent });
+    expect(receipts).toHaveLength(2); // the deposit alone: no second approval
     const deposit = parseEventLogs({ abi: machineAbi, eventName: "Deposit", logs: receipts[1]!.logs })[0]!;
     expect(getAddress(deposit.args.receiver)).toBe(getAddress(TEST_ACCOUNT));
     expect(deposit.args.shares).toBeGreaterThanOrEqual((shares * 9_950n) / 10_000n);
@@ -151,6 +154,10 @@ describe.skipIf(forkSkip)("Ethereum hub (fork)", () => {
       }),
       onEvent,
     });
+    expect(receipts).toHaveLength(2); // approve + request
+    const sharesApproval = parseEventLogs({ abi: erc20Abi, eventName: "Approval", logs: receipts[0]!.logs })[0]!;
+    expect(sharesApproval.args.value).toBe(redeemShares);
+    expect(getAddress(sharesApproval.args.spender)).toBe(getAddress(dusd.redeemer!));
     const created = parseEventLogs({
       abi: asyncRedeemerAbi,
       eventName: "RedeemRequestCreated",

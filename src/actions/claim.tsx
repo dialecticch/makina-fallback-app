@@ -107,7 +107,7 @@ function ClaimAllForm({ chainId, rows, showChain }: { chainId: number; rows: Req
   const check = claimable.length > 0 ? ({ ok: true } as const) : (firstFailure ?? ({ ok: true } as const));
 
   return (
-    <div className="w-44">
+    <div className="min-w-44">
       <ActionButton
         size="sm"
         chainId={chainId}

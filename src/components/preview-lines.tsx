@@ -15,7 +15,7 @@ export function Line({ label, children }: { label: string; children: React.React
 
 /**
  * What the approval will grant, shown before the wallet prompt: the exact amount and the spender, so the user can
- * compare it with what their wallet displays.
+ * compare it with what their wallet displays. Hidden when the allowance already covers the amount.
  */
 export function SpenderLine({
   chainId,
@@ -24,6 +24,7 @@ export function SpenderLine({
   symbol,
   spender,
   role,
+  needed,
 }: {
   chainId: number;
   amount: bigint | undefined;
@@ -31,12 +32,15 @@ export function SpenderLine({
   symbol: string | undefined;
   spender: AddressType;
   role: string;
+  /** From `needsApproval`: undefined while the allowance is unknown. */
+  needed: boolean | undefined;
 }) {
+  if (needed === false) return null;
   return (
     <div className="flex flex-col gap-0.5 border-t pt-1.5 text-xs">
       <span className="text-muted-foreground">
-        Approval (only if needed): exactly <Amount value={amount} decimals={decimals} symbol={symbol} compact={false} />{" "}
-        to {role}
+        {needed ? "Approval: " : "Approval, if needed: "}
+        <Amount value={amount} decimals={decimals} symbol={symbol} compact={false} /> to {role}
       </span>
       <Address chainId={chainId} address={spender} full className="break-all" />
     </div>

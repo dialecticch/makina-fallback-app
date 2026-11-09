@@ -38,6 +38,14 @@ export type Plan = {
   targets?: PlanTargets[];
 };
 
+/**
+ * A plan's approval on its own, for forms that make it a separate click before the action. Its targets are still
+ * verified, so the spender is checked through the wallet's RPC before anything is approved.
+ */
+export function approvalOnly(plan: Plan): Plan {
+  return { approval: plan.approval, steps: [], targets: plan.targets };
+}
+
 /** The hub a Machine belongs to, as needed to verify a plan's targets. */
 export type HubAnchor = Pick<PlanTargets, "hubCoreRegistry" | "hubPeripheryRegistry" | "trustedFactories">;
 

@@ -96,8 +96,8 @@ outage.
 - Before anything is signed, the Machine, its depositor or redeemer, and its tokens are re-read through your wallet's
   RPC and must match what the app shows, starting from the hub's registry. A lying public RPC cannot redirect an
   approval. Each transaction is then simulated through your wallet's RPC.
-- Approvals are for exactly the amount of the action, shown with the spender's address before your wallet opens.
-  An existing allowance is reset to zero first only when the token requires it.
+- An approval is its own click, before the action, for exactly the amount of the action, shown with the spender's
+  address before your wallet opens. An existing allowance is reset to zero first only when the token requires it.
 - The receiver of every deposit, redemption request and claim is the connected account.
 - Redemptions go through a queue: requesting one gives you an NFT, and you claim once the Machine's mechanic
   finalizes it. The slippage limit protects the request only: at finalization you receive the lower of the value at

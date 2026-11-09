@@ -19,9 +19,9 @@ const PHASE_LABEL: Record<InstanceSnapshot["phase"], string> = {
 function warningText(w: InstanceWarning, chainName: string) {
   switch (w.kind) {
     case "factoryUpgraded":
-      return `The ${chainName} hub's factory (${w.factory}) has changed since this release was checked. The Machine list may be incomplete: update the app.`;
+      return `The ${chainName} hub's factory changed (${w.factory}): the Machine list may be incomplete. Update the app.`;
     case "factoryHistoryUnknown":
-      return `Earlier factories of this hub could not be checked (the RPCs keep no historical state), so older Machines may be missing. An archive RPC in Settings fixes this.`;
+      return `Older Machines may be missing: these RPCs keep no history. An archive RPC in Settings fixes this.`;
     case "peripheryMismatch":
       return `The periphery registry reported by this hub's Machines (${w.reported}) is not the configured one.`;
   }
@@ -68,8 +68,8 @@ function StatusLine({ snapshot }: { snapshot: InstanceSnapshot }) {
       {snapshot.stalledForMs !== undefined && !snapshot.error && (
         <div role="status" className="text-warning flex flex-wrap items-center gap-2 text-xs">
           <TriangleAlert className="size-3.5" aria-hidden />
-          No answer for {Math.round(snapshot.stalledForMs / 1000)} s: the RPCs for {chainName} are slow or
-          rate-limiting. The app keeps retrying; your own RPC (Settings, RPC endpoints) fixes this.
+          {chainName} RPCs silent for {Math.round(snapshot.stalledForMs / 1000)} s, still retrying. Your own RPC in
+          Settings fixes this.
         </div>
       )}
       {snapshot.error && (

@@ -159,16 +159,14 @@ function Header({ view, now }: { view: MachineView; now: bigint }) {
           role="alert"
           className="border-destructive/40 bg-destructive/10 text-destructive rounded-lg border p-3 text-sm"
         >
-          <strong>Recovery mode.</strong> Deposits and new redemption requests are disabled and pending requests cannot
-          be finalized. Requests that are already finalized can still be claimed.
+          <strong>Recovery mode.</strong> Deposits, new requests and finalizations are paused. Finalized requests can
+          still be claimed.
         </div>
       )}
       {view.accountingStale && !view.data.recoveryMode && (
         <div role="alert" className="border-warning/40 bg-warning/10 text-warning rounded-lg border p-3 text-sm">
-          <strong>Accounting is stale.</strong> The share price was last updated{" "}
-          <RelativeTime unixSeconds={view.data.lastGlobalAccountingTime} nowSeconds={now} />, longer ago than this
-          Machine&apos;s {formatDuration(view.data.caliberStaleThreshold ?? 0n)} threshold. Deposits are priced from
-          that last update.
+          <strong>Accounting is stale</strong> (over {formatDuration(view.data.caliberStaleThreshold ?? 0n)}). Deposits
+          are priced from the last update.
         </div>
       )}
     </div>
@@ -334,8 +332,7 @@ function MachineDetails({ view, now }: { view: MachineView; now: bigint }) {
           {(view.depositorKind === undefined && !view.depositorClosed && data.depositor !== undefined) ||
           (view.redeemerKind === undefined && !view.redeemerClosed && data.redeemer !== undefined) ? (
             <p className="text-muted-foreground text-sm">
-              Some of this Machine&apos;s contracts are not supported here, so those actions are read-only.{" "}
-              <LearnMore topic="statuses" />
+              Some contracts are unsupported here, so those actions are read-only. <LearnMore topic="statuses" />
             </p>
           ) : null}
         </div>

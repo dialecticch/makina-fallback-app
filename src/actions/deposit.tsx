@@ -6,6 +6,7 @@ import { useReadContract } from "wagmi";
 import { machineAbi } from "@/abis";
 import { depositPlan } from "@/actions/plans";
 import { type ActionContext, useActionContext } from "@/actions/use-action-context";
+import { useApprovalStep } from "@/actions/use-approval-step";
 import { useTransactionFlow } from "@/actions/use-transaction-flow";
 import { WrapEth } from "@/actions/wrap-eth";
 import { ActionButton } from "@/components/action-button";
@@ -17,7 +18,6 @@ import { useUserSettings } from "@/config/user-settings";
 import type { MachineView } from "@/data/machine-view";
 import { useDebouncedMemo } from "@/hooks/use-debounced-memo";
 import { applySlippage } from "@/lib/derive";
-import { formatDuration } from "@/lib/format";
 import { preCheckFor } from "@/lib/pre-checks";
 
 /** Deposit through the Machine's DirectDepositor. */
@@ -48,12 +48,15 @@ function DepositFields({ view, ctx }: { view: MachineView; ctx: ActionContext })
   const shares = debouncedAssets === assets && !preview.isFetching ? preview.data : undefined;
   const minShares = shares === undefined ? undefined : applySlippage(shares, slippageBps);
 
+  const symbol = view.accountingSymbol ?? "tokens";
+  const approval = useApprovalStep(flow, ctx.user?.depositAllowance, assets);
+
   const exceedsCap = shares !== undefined && data.maxMint !== undefined && shares > data.maxMint;
   const blocker =
     assets === undefined || assets === 0n
       ? "Enter an amount."
       : ctx.user?.accountingBalance !== undefined && assets > ctx.user.accountingBalance
-        ? `Not enough ${view.accountingSymbol ?? "tokens"} in this wallet.`
+        ? `Not enough ${symbol} in this wallet.`
         : shares === undefined
           ? "Calculating shares…"
           : shares === 0n
@@ -61,7 +64,7 @@ function DepositFields({ view, ctx }: { view: MachineView; ctx: ActionContext })
             : exceedsCap
               ? "This deposit would exceed the Machine's share cap."
               : view.accountingStale && !staleAck
-                ? "Confirm the stale-accounting warning to continue."
+                ? "Confirm the stale-accounting warning first."
                 : !ctx.hub
                   ? "Hub details are not loaded yet."
                   : undefined;
@@ -110,7 +113,8 @@ function DepositFields({ view, ctx }: { view: MachineView; ctx: ActionContext })
             decimals={view.accountingDecimals}
             symbol={view.accountingSymbol}
             spender={data.depositor}
-            role="the Machine's depositor"
+            role="the depositor"
+            needed={approval.needed}
           />
         )}
       </div>
@@ -125,8 +129,7 @@ function DepositFields({ view, ctx }: { view: MachineView; ctx: ActionContext })
           />
           <span>
             <TriangleAlert className="text-warning mr-1 inline size-3.5" aria-hidden />
-            Accounting is stale (older than {formatDuration(data.caliberStaleThreshold ?? 0n)}): shares are priced from
-            the last update, which may be outdated. I understand.
+            Shares are priced from a stale accounting update. I understand.
           </span>
         </label>
       )}
@@ -148,10 +151,10 @@ function DepositFields({ view, ctx }: { view: MachineView; ctx: ActionContext })
             slippageBps,
             symbol: view.accountingSymbol,
           });
-          void flow.run(plan, { onReceipt: () => setText("") });
+          approval.run(plan, { onReceipt: () => setText("") });
         }}
       >
-        Deposit
+        {approval.needed ? `Approve ${symbol}` : "Deposit"}
       </ActionButton>
 
       {isWeth && <WrapEth view={view} />}
