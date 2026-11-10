@@ -31,7 +31,10 @@ export type RedemptionRequest = {
   /** `id <= lastFinalizedRequestId`: the assets are fixed and can be claimed. */
   claimable: boolean;
   claimableAssets?: bigint;
-  /** Pending only: `convertToAssets(shares)` less any redeem fee. The final amount can only be lower. */
+  /**
+   * Pending only: `convertToAssets(shares)` less any redeem fee, capped at the assets recorded at request time
+   * (finalization pays the lower of the two). The final amount is lower if the share price falls before then.
+   */
   estimatedAssets?: bigint;
   /** Unix seconds of the request's creation, from the redeemer's storage, when known. */
   requestTime?: bigint;

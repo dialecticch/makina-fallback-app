@@ -69,6 +69,18 @@ The only log scan, run when the user asks. One filter per chain and user, with n
 Makina-specific event signatures in `topics[0]` and the user in `topics[2]`. Logs are kept only when emitted by a
 known Machine or redeemer, and the filter never changes when Machines are added, so the cache stays valid.
 
+### Earnings (`src/lib/yield.ts`, `src/data/yield.ts`)
+
+Loaded with the activity history: two more filters per chain, the share tokens' `Transfer` from and to the user.
+Each transfer is labelled: a mint matched by a `Deposit` to the user in the same transaction costs the deposit's
+`assets`; a transfer to the redeemer matched by a request created for the user is worth what the request pays
+(claimed, claimable, or the current estimate); anything else (swaps, Pendle, liquidations, other wallets) is worth
+`convertToAssets(shares)` at its block, one historical multicall per block, cached once final (before a Machine
+launched, at its first block). Then earned = value held now + value of what left − value of what came in, split at
+average cost into shares held and shares gone. The movements must add up to the live balance and request IDs exactly,
+otherwise the figure is "–" with the reason; the history is refetched whenever the balances change, so the two stay
+consistent.
+
 The scanner (`scanLogs`) runs outside React. Every RPC works through one queue of block ranges in parallel, each with
 its own range limit (`maxLogBlocks` in chains.ts, or 10,000 blocks doubling and halving for unknown RPCs). Requests
 are paced per RPC (`src/lib/rate-limit.ts`: the rate halves on a 429 and grows slowly on success), aborted on timeout,
@@ -102,7 +114,8 @@ the lower of the recorded and the then-current value.
 - **Query cache** (`src/lib/query-client.ts`): public chain data (Machines, their data, queue health) persisted for
   7 days, so reloads render immediately while revalidating. Nothing about the viewer's address is persisted there.
   Bump `CACHE_BUSTER` in `src/config/constants.ts` whenever the shape of a persisted query changes.
-- **Activity cache:** one localStorage entry per chain and address that loaded activity. "Clear cache" removes both.
+- **Activity cache:** per chain and address that loaded activity, three localStorage entries (the activity, the share
+  transfers, and their values). "Clear cache" removes them with the query cache.
 
 ## Security headers
 

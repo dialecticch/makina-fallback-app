@@ -1,7 +1,7 @@
 import { type Address, isAddressEqual, type PublicClient, zeroAddress } from "viem";
 
 import { asyncRedeemerFeeAbi, directDepositorAbi, machineAbi, machineShareAbi, sanctionsOracleAbi } from "@/abis";
-import { readRequestTimes } from "@/data/request-times";
+import { readRequestAssets, readRequestTimes } from "@/data/request-times";
 import type { MachineData } from "@/data/types";
 import type { RedemptionRequest, UserMachineState } from "@/data/user-types";
 import { asBigint, asBool, call, multicallLoose, readBatch } from "@/lib/calls";
@@ -139,7 +139,8 @@ export async function fetchUserRequests(
   );
   const isFinalized = (m: MachineData, id: bigint) =>
     m.redeemerInfo.lastFinalizedRequestId !== undefined && id <= m.redeemerInfo.lastFinalizedRequestId;
-  const [values, times] = await Promise.all([
+  const knownLayout = (m: MachineData) => redeemerKind(m.redeemerInfo.implemId) !== undefined;
+  const [values, times, recorded] = await Promise.all([
     multicallLoose(
       client,
       owned.map(({ m, id }, i) =>
@@ -150,8 +151,13 @@ export async function fetchUserRequests(
     ),
     Promise.all(
       owned.map(({ m, id }) =>
-        redeemerKind(m.redeemerInfo.implemId)
-          ? readRequestTimes(client, m.redeemer!, [id]).then((t) => t[0])
+        knownLayout(m) ? readRequestTimes(client, m.redeemer!, [id]).then((t) => t[0]) : Promise.resolve(undefined),
+      ),
+    ),
+    Promise.all(
+      owned.map(({ m, id }) =>
+        knownLayout(m) && !isFinalized(m, id)
+          ? readRequestAssets(client, m.redeemer!, [id]).then((a) => a[0])
           : Promise.resolve(undefined),
       ),
     ),
@@ -160,6 +166,13 @@ export async function fetchUserRequests(
   return owned.map(({ m, id }, i) => {
     const claimable = isFinalized(m, id);
     const value = asBigint(values[i]);
+    // Finalization pays min(recorded, value then), so the recorded amount caps the estimate. Without a known
+    // storage layout, the current value is the best estimate.
+    let estimate = value === undefined ? undefined : lessRedeemFee(value, m.redeemerInfo.redeemFeeRate);
+    if (estimate !== undefined && knownLayout(m)) {
+      const cap = recorded[i];
+      estimate = cap === undefined ? undefined : estimate < cap ? estimate : cap;
+    }
     return {
       chainId: args.chainId,
       machine: m.machine,
@@ -168,8 +181,7 @@ export async function fetchUserRequests(
       shares: asBigint(shares[i]),
       claimable,
       claimableAssets: claimable ? value : undefined,
-      estimatedAssets:
-        !claimable && value !== undefined ? lessRedeemFee(value, m.redeemerInfo.redeemFeeRate) : undefined,
+      estimatedAssets: claimable ? undefined : estimate,
       requestTime: times[i],
     };
   });

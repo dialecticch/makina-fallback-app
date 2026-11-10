@@ -55,7 +55,7 @@ export function hasActivityCache(chainId: number, user: Address) {
   }
 }
 
-type TimedLog = ScannedLog & { time?: bigint };
+export type TimedLog = ScannedLog & { time?: bigint };
 
 function load(key: string): { from: bigint; to: bigint; logs: TimedLog[] } | undefined {
   try {
@@ -92,22 +92,21 @@ function save(key: string, from: bigint, to: bigint, logs: TimedLog[]) {
 }
 
 /**
- * Scans `[fromBlock, head]`, reusing the cached part and fetching block timestamps for new logs. Only blocks at
- * least `confirmations` deep are cached.
+ * Logs matching any of `filters` in `[fromBlock, head]`, reusing what is cached under `key`, sorted by block and
+ * log index. Only blocks at least `confirmations` deep are cached. With `withTimes`, new logs get their block
+ * timestamps.
  */
-export async function scanActivity(args: {
+export async function scanCached(args: {
   client: Pick<PublicClient, "getBlockNumber" | "getBlock">;
   endpoints: readonly ScanEndpoint[];
-  chainId: number;
-  user: Address;
+  key: string;
+  filters: readonly LogFilter[];
   fromBlock: bigint;
   confirmations: bigint;
-  machines: readonly MachineData[];
+  withTimes: boolean;
   onProgress?: (fraction: number) => void;
-}): Promise<ActivityItem[]> {
-  const { client, endpoints, chainId, user, fromBlock, onProgress } = args;
-  const key = cacheKey(chainId, user);
-  const filter = activityFilter(user);
+}): Promise<{ logs: TimedLog[]; head: bigint }> {
+  const { client, endpoints, key, filters, fromBlock, onProgress } = args;
   const head = await client.getBlockNumber();
   const safe = head - args.confirmations;
 
@@ -123,24 +122,49 @@ export async function scanActivity(args: {
   for (const [a, b] of ranges) {
     if (b < a) continue;
     const size = b - a + 1n;
-    const found = await scanLogs({
-      endpoints,
-      filter,
-      fromBlock: a,
-      toBlock: b,
-      onProgress: (f) => onProgress?.((Number(before) + f * Number(size)) / Math.max(1, Number(total))),
-    });
-    fresh.push(...found);
+    const fractions = filters.map(() => 0);
+    const report = () => {
+      const f = fractions.reduce((x, y) => x + y, 0) / filters.length;
+      onProgress?.((Number(before) + f * Number(size)) / Math.max(1, Number(total)));
+    };
+    const found = await Promise.all(
+      filters.map((filter, i) =>
+        scanLogs({
+          endpoints,
+          filter,
+          fromBlock: a,
+          toBlock: b,
+          onProgress: (f) => {
+            fractions[i] = f;
+            report();
+          },
+        }),
+      ),
+    );
+    fresh.push(...found.flat());
     before += size;
   }
 
-  const all: TimedLog[] = [...(cached?.logs ?? []), ...fresh];
-  const untimed = [...new Set(all.filter((l) => l.time === undefined).map((l) => l.blockNumber))];
-  const blocks = await Promise.all(
-    untimed.map((blockNumber) => client.getBlock({ blockNumber }).catch(() => undefined)),
-  );
-  const times = new Map(blocks.filter((b) => b?.number != null).map((b) => [b!.number!, b!.timestamp]));
-  for (const l of all) if (l.time === undefined) l.time = times.get(l.blockNumber);
+  // A log can match several filters (a transfer to self): keep it once.
+  const seen = new Set<string>();
+  const all: TimedLog[] = [...(cached?.logs ?? []), ...fresh]
+    .filter((l) => {
+      const id = `${l.transactionHash}:${l.logIndex}`;
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    })
+    .sort((x, y) =>
+      x.blockNumber === y.blockNumber ? x.logIndex - y.logIndex : x.blockNumber < y.blockNumber ? -1 : 1,
+    );
+  if (args.withTimes) {
+    const untimed = [...new Set(all.filter((l) => l.time === undefined).map((l) => l.blockNumber))];
+    const blocks = await Promise.all(
+      untimed.map((blockNumber) => client.getBlock({ blockNumber }).catch(() => undefined)),
+    );
+    const times = new Map(blocks.filter((b) => b?.number != null).map((b) => [b!.number!, b!.timestamp]));
+    for (const l of all) if (l.time === undefined) l.time = times.get(l.blockNumber);
+  }
 
   const cacheFrom = cached && cached.from < fromBlock ? cached.from : fromBlock;
   save(
@@ -149,7 +173,27 @@ export async function scanActivity(args: {
     safe,
     all.filter((l) => l.blockNumber <= safe),
   );
-  return toActivity(chainId, all, args.machines);
+  return { logs: all, head };
+}
+
+/** The user's deposits, requests and claims on one chain (see the top of this file). */
+export async function scanActivity(args: {
+  client: Pick<PublicClient, "getBlockNumber" | "getBlock">;
+  endpoints: readonly ScanEndpoint[];
+  chainId: number;
+  user: Address;
+  fromBlock: bigint;
+  confirmations: bigint;
+  machines: readonly MachineData[];
+  onProgress?: (fraction: number) => void;
+}): Promise<ActivityItem[]> {
+  const { logs } = await scanCached({
+    ...args,
+    key: cacheKey(args.chainId, args.user),
+    filters: [activityFilter(args.user)],
+    withTimes: true,
+  });
+  return toActivity(args.chainId, logs, args.machines);
 }
 
 /** Keeps logs emitted by a known Machine (deposits) or its redeemer (requests, claims), newest first. */

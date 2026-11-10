@@ -8,7 +8,7 @@ down.
 - **Explore**: every Machine on the Makina hubs (Ethereum and Base built in, others discovered), with TVL, share
   price, fees, cap, access and health (stale accounting, stalled redemption queue).
 - **Machine page**: details, the redemption queue, every contract address, and the deposit / redeem / claim actions.
-- **Portfolio**: your positions, redemption requests and claimable amounts; activity history on request. Paste any
+- **Portfolio**: your positions, redemption requests and claimable amounts; activity history and earnings on request. Paste any
   address to view it read-only.
 - **Actions**: deposit (DirectDepositor), wrap ETH, request a redemption (AsyncRedeemer), claim.
 

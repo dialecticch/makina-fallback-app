@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { readRequestTimes, requestTimeSlot } from "@/data/request-times";
+import { readRequestTimes, requestAssetsSlot, requestTimeSlot } from "@/data/request-times";
 
 describe("request times from AsyncRedeemer storage", () => {
   it("computes the slot of requests[id].requestTime in the ERC-7201 namespace", () => {
@@ -8,6 +8,10 @@ describe("request times from AsyncRedeemer storage", () => {
     // exact timestamp of the block with RedeemRequestCreated(5), as did every other pending request on both hubs.
     expect(requestTimeSlot(5n)).toBe("0x4a81fc11ec0a97789236abc15f53ac8ed29dbe15c2c69875f987b827ff77c902");
     expect(requestTimeSlot(6n)).not.toBe(requestTimeSlot(5n));
+  });
+
+  it("reads requests[id].assets one slot before requestTime", () => {
+    expect(BigInt(requestAssetsSlot(5n))).toBe(BigInt(requestTimeSlot(5n)) - 1n);
   });
 
   it("returns undefined for burned requests and implausible values", async () => {

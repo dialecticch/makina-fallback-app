@@ -7,8 +7,10 @@ import type { MachineView } from "@/data/machine-view";
 import { useMachineViews } from "@/data/use-machines";
 import { useUserSnapshots } from "@/data/user-store";
 import type { ActivityItem, RedemptionRequest, UserMachineState, UserSnapshot } from "@/data/user-types";
+import type { ChainYieldData } from "@/data/yield";
 import { useNowSeconds } from "@/hooks/use-now";
 import { type RequestStatus, requestStatus } from "@/lib/derive";
+import { computeYield, type YieldResult } from "@/lib/yield";
 
 export type Position = { view: MachineView; state: UserMachineState };
 export type RequestRow = { request: RedemptionRequest; view: MachineView | undefined; status: RequestStatus };
@@ -69,6 +71,42 @@ export function usePortfolio() {
       loadingRequests: mine.length === 0 || mine.some((s) => !s.requestsReady),
     };
   }, [address, chainId, views, snapshots, now]);
+}
+
+export type EarningsRow = { view: MachineView; result: YieldResult; holding: boolean };
+
+/**
+ * What the viewer earned on each Machine with any history (src/lib/yield.ts), by `machineKey`: the movements from
+ * the activity scan against the shares and requests read from state now.
+ */
+export function earningsRows(
+  snapshots: readonly UserSnapshot[],
+  yieldData: ReadonlyMap<number, ChainYieldData>,
+  views: Map<string, MachineView>,
+): Map<string, EarningsRow> {
+  const out = new Map<string, EarningsRow>();
+  for (const s of snapshots) {
+    const chain = yieldData.get(s.instance.chainId);
+    if (!chain || !s.requestsReady) continue;
+    for (const state of Object.values(s.byMachine)) {
+      const data = chain.byMachine[state.machine.toLowerCase()];
+      const key = machineKey(s.instance.chainId, state.machine);
+      const view = views.get(key);
+      if (!data || !view) continue;
+      const heldRequests = s.requests
+        .filter((r) => r.machine.toLowerCase() === state.machine.toLowerCase())
+        .map((r) => ({ id: r.id, value: r.claimable ? r.claimableAssets : r.estimatedAssets }));
+      const result = computeYield({
+        movements: data.movements,
+        claims: data.claims,
+        values: chain.values,
+        held: { shares: state.shares, value: state.value },
+        heldRequests,
+      });
+      out.set(key, { view, result, holding: (state.shares ?? 0n) > 0n });
+    }
+  }
+  return out;
 }
 
 /** Activity newest first, joined with Machine data. */
