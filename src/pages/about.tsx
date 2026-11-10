@@ -43,6 +43,12 @@ export function AboutPage() {
           minute or two per network on free public RPCs the first time, then only new blocks.
         </p>
         <p>
+          Earnings, loaded with the history, are indicative. Deposits cost what you paid, redemptions count what they
+          pay, and shares that came in or left any other way (swaps, lending, pools, other wallets) are valued at the
+          share price of that block. So they count what the shares earned while in this wallet: yield on shares lent,
+          pooled or held elsewhere is not included, and neither is interest or fees paid by those protocols.
+        </p>
+        <p>
           The RPC providers you use see your IP address and the addresses you look up, as with any wallet or frontend.
         </p>
       </Section>
