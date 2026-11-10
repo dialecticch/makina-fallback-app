@@ -1,6 +1,5 @@
 import { ExternalLink, RefreshCw } from "lucide-react";
 import { Link } from "react-router";
-import type { Address as AddressType } from "viem";
 import { useChains } from "wagmi";
 
 import { ClaimAllButton, ClaimButton } from "@/actions/claim";
@@ -14,15 +13,27 @@ import { RelativeTime } from "@/components/relative-time";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ViewAddressField } from "@/components/viewer";
 import { explorerUrl } from "@/config/chains";
 import type { MachineView } from "@/data/machine-view";
 import { useActivity } from "@/data/use-activity";
-import { type ActivityRow, activityRows, type Position, type RequestRow, usePortfolio } from "@/data/use-portfolio";
+import {
+  type ActivityRow,
+  activityRows,
+  type EarningsRow,
+  earningsRows,
+  type Position,
+  type RequestRow,
+  usePortfolio,
+} from "@/data/use-portfolio";
 import type { UserSnapshot } from "@/data/user-types";
 import { REQUEST_STATUS_LABEL } from "@/lib/derive";
-import { abbreviateAddress } from "@/lib/format";
+import { abbreviateAddress, formatTokenAmount } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import type { YieldGap } from "@/lib/yield";
+
+type Activity = ReturnType<typeof useActivity>;
 
 function MachineCell({ view, chainId }: { view: MachineView | undefined; chainId: number }) {
   const chains = useChains();
@@ -136,7 +147,96 @@ function ClaimableSection({ rows }: { rows: RequestRow[] }) {
   );
 }
 
-function PositionsSection({ positions, loading }: { positions: Position[]; loading: boolean }) {
+const GAP_TEXT: Record<YieldGap, string> = {
+  unpriced: "Shares came in or left outside Makina, and no RPC returned their past value. Add an RPC in Settings.",
+  balance: "Shares moved in a way the history cannot account for.",
+  request: "A redemption request moved between wallets.",
+  unknownValue: "A current value could not be read. Try Refresh.",
+};
+
+function signedAmount(value: bigint, decimals: number) {
+  const sign = value > 0n ? "+" : value < 0n ? "−" : "";
+  return `${sign}${formatTokenAmount(value < 0n ? -value : value, decimals)}`;
+}
+
+/** `part / whole` as a signed percentage with two decimals. */
+function signedPercent(part: bigint, whole: bigint) {
+  if (whole <= 0n) return undefined;
+  const bps = (part * 10_000n) / whole;
+  const abs = bps < 0n ? -bps : bps;
+  return `${bps > 0n ? "+" : bps < 0n ? "−" : ""}${abs / 100n}.${(abs % 100n).toString().padStart(2, "0")}%`;
+}
+
+/** What one Machine earned the viewer, with the split in a tooltip; "–" with the reason when it cannot be known. */
+function Earned({ row, loading }: { row: EarningsRow | undefined; loading: boolean }) {
+  if (!row) return <span className="text-muted-foreground">{loading ? "…" : "–"}</span>;
+  const { result, view } = row;
+  const decimals = view.accountingDecimals;
+  if (!result.ok || decimals === undefined) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span tabIndex={0} className="text-muted-foreground">
+            –
+          </span>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-64">
+          {result.ok ? "Unknown token decimals." : GAP_TEXT[result.gap]}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+  const percent = signedPercent(result.current, result.costBasis);
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          tabIndex={0}
+          className={cn("tabular-nums", result.total > 0n && "text-success", result.total < 0n && "text-destructive")}
+        >
+          {signedAmount(result.total, decimals)}
+          {view.accountingSymbol && <span className="text-muted-foreground"> {view.accountingSymbol}</span>}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent className="flex max-w-64 flex-col gap-0.5">
+        {row.holding && (
+          <span>
+            Shares held: {signedAmount(result.current, decimals)}
+            {percent && ` (${percent})`}
+          </span>
+        )}
+        {result.past !== 0n && <span>Shares redeemed or sent: {signedAmount(result.past, decimals)}</span>}
+        <span className="text-muted-foreground">At the share price when shares came in and left.</span>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function EarningsPrompt({ activity }: { activity: Activity }) {
+  if (activity.started) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 pb-2">
+      <Button size="sm" variant="outline" onClick={activity.load}>
+        Show earnings
+      </Button>
+      <span className="text-muted-foreground text-xs">
+        Loads your history: a minute or two the first time. <LearnMore topic="data" />
+      </span>
+    </div>
+  );
+}
+
+function PositionsSection({
+  positions,
+  loading,
+  earnings,
+  activity,
+}: {
+  positions: Position[];
+  loading: boolean;
+  earnings: Map<string, EarningsRow>;
+  activity: Activity;
+}) {
   const chains = useChains();
   const byChain = new Map<number, Position[]>();
   for (const p of positions) byChain.set(p.view.data.chainId, [...(byChain.get(p.view.data.chainId) ?? []), p]);
@@ -160,6 +260,12 @@ function PositionsSection({ positions, loading }: { positions: Position[]; loadi
       cell: ({ view, state }) => (
         <Amount value={state.value} decimals={view.accountingDecimals} symbol={view.accountingSymbol} />
       ),
+    },
+    {
+      key: "earned",
+      label: "Earned",
+      align: "right",
+      cell: ({ view }) => <Earned row={earnings.get(view.key)} loading={activity.loading} />,
     },
     {
       key: "price",
@@ -203,6 +309,7 @@ function PositionsSection({ positions, loading }: { positions: Position[]; loadi
         )
       ) : (
         <div className="flex flex-col gap-4">
+          <EarningsPrompt activity={activity} />
           {[...byChain.entries()].map(([chainId, list]) => (
             <div key={chainId} className="flex flex-col gap-1">
               <h3 className="text-muted-foreground flex items-center gap-1.5 px-3 text-xs font-medium">
@@ -253,7 +360,7 @@ function PendingSection({ rows, now }: { rows: RequestRow[]; now: bigint }) {
             decimals={r.view?.accountingDecimals}
             symbol={r.view?.accountingSymbol}
           />
-          <span className="sr-only"> (estimate, final amount can only be lower)</span>
+          <span className="sr-only"> (estimate)</span>
         </>
       ),
     },
@@ -286,8 +393,43 @@ function PendingSection({ rows, now }: { rows: RequestRow[]; now: bigint }) {
     },
   ];
   return (
-    <Section title="Pending redemptions" description="Final amounts can be lower than the estimates, never higher.">
+    <Section
+      title="Pending redemptions"
+      description="Each pays the value when requested, or less if the share price falls before finalization."
+    >
       <FitTable columns={columns} rows={rows} rowKey={(r) => `${r.request.redeemer}:${r.request.id}`} />
+    </Section>
+  );
+}
+
+/** Machines the viewer has left (no shares now), with what they earned. */
+function PastSection({ earnings }: { earnings: Map<string, EarningsRow> }) {
+  const rows = [...earnings.values()].filter((r) => !r.holding && r.result.ok && r.result.total !== 0n);
+  if (rows.length === 0) return null;
+  const columns: FitColumn<EarningsRow>[] = [
+    {
+      key: "machine",
+      label: "Machine",
+      title: true,
+      cell: ({ view }) => <MachineCell view={view} chainId={view.data.chainId} />,
+    },
+    { key: "earned", label: "Earned", align: "right", cell: (row) => <Earned row={row} loading={false} /> },
+    {
+      key: "actions",
+      label: "Actions",
+      header: <span className="sr-only">Actions</span>,
+      align: "right",
+      wide: true,
+      cell: ({ view }) => (
+        <Button size="sm" variant="outline" asChild>
+          <Link to={`/machine/${view.data.chainId}/${view.data.machine}?action=deposit`}>Deposit again</Link>
+        </Button>
+      ),
+    },
+  ];
+  return (
+    <Section title="Past positions">
+      <FitTable columns={columns} rows={rows} rowKey={({ view }) => view.key} />
     </Section>
   );
 }
@@ -295,16 +437,15 @@ function PendingSection({ rows, now }: { rows: RequestRow[]; now: bigint }) {
 const ACTIVITY_LABEL = { deposit: "Deposit", request: "Redemption request", claim: "Claim" } as const;
 
 function ActivitySection({
-  address,
+  activity,
   views,
   now,
 }: {
-  address: AddressType;
+  activity: Activity;
   views: Map<string, MachineView>;
   now: bigint;
 }) {
   const chains = useChains();
-  const activity = useActivity(address);
   const rows: ActivityRow[] = activityRows(activity.items, views);
   const chainName = (id: number) => chains.find((c) => c.id === id)?.name ?? `Chain ${id}`;
   const activityColumns: FitColumn<ActivityRow>[] = [
@@ -414,6 +555,8 @@ function ActivitySection({
 
 export function PortfolioPage() {
   const portfolio = usePortfolio();
+  const activity = useActivity(portfolio.address);
+  const earnings = earningsRows(portfolio.snapshots, activity.yieldData, portfolio.views);
 
   if (!portfolio.address) {
     return (
@@ -435,14 +578,15 @@ export function PortfolioPage() {
       </div>
       <ChainLines snapshots={portfolio.snapshots} />
       <ClaimableSection rows={portfolio.claimable} />
-      <PositionsSection positions={portfolio.positions} loading={portfolio.loadingBalances} />
-      <PendingSection rows={portfolio.pending} now={portfolio.now} />
-      <ActivitySection
-        key={portfolio.address}
-        address={portfolio.address}
-        views={portfolio.views}
-        now={portfolio.now}
+      <PositionsSection
+        positions={portfolio.positions}
+        loading={portfolio.loadingBalances}
+        earnings={earnings}
+        activity={activity}
       />
+      <PendingSection rows={portfolio.pending} now={portfolio.now} />
+      <PastSection earnings={earnings} />
+      <ActivitySection activity={activity} views={portfolio.views} now={portfolio.now} />
     </div>
   );
 }

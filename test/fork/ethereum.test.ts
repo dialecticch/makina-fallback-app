@@ -18,6 +18,8 @@ import { fetchMachineData } from "@/data/fetch-machine-data";
 import { fetchUserBalances, fetchUserRequests } from "@/data/fetch-user-data";
 import { toMachineView } from "@/data/machine-view";
 import type { MachineData } from "@/data/types";
+import { loadYieldData, scanShareTransfers } from "@/data/yield";
+import { computeYield } from "@/lib/yield";
 
 import { ETHEREUM, FORK, TEST_ACCOUNT } from "./config";
 import {
@@ -34,6 +36,7 @@ import {
 
 const instance = BUILTIN_INSTANCES.find((i) => i.chainId === 1)!;
 const NOW = BigInt(Math.floor(Date.now() / 1000));
+const OTHER_WALLET = "0x00000000000000000000000000000000000e7402" as Address;
 
 describe.skipIf(forkSkip)("Ethereum hub (fork)", () => {
   const client = forkClient(1);
@@ -47,6 +50,37 @@ describe.skipIf(forkSkip)("Ethereum hub (fork)", () => {
     ({ machineData, peripheryFactory } = await scanInstance(client, instance));
   });
   afterAll(async () => revert());
+
+  /** The earnings figure for the test account on one Machine, through the app's scans and state reads. */
+  const earnedOn = async (machine: MachineData) => {
+    const scan = {
+      client: client as never,
+      endpoints: [{ url: forkUrl(1), maxBlocks: 1_000 }],
+      chainId: 1,
+      user: TEST_ACCOUNT,
+      fromBlock: FORK[1].block,
+      confirmations: 0n,
+      machines: [machine],
+    };
+    const [items, { transfers, head }] = await Promise.all([scanActivity(scan), scanShareTransfers(scan)]);
+    const data = await loadYieldData({ ...scan, safeBlock: head, activity: items, transfers });
+    const { byMachine } = await fetchUserBalances(client as never, { user: TEST_ACCOUNT, machines: [machine] });
+    const requests = await fetchUserRequests(client as never, {
+      chainId: 1,
+      user: TEST_ACCOUNT,
+      machines: [machine],
+      byMachine,
+    });
+    const state = byMachine[machine.machine.toLowerCase()]!;
+    const d = data.byMachine[machine.machine.toLowerCase()]!;
+    return computeYield({
+      movements: d.movements,
+      claims: d.claims,
+      values: data.values,
+      held: { shares: state.shares, value: state.value },
+      heldRequests: requests.map((r) => ({ id: r.id, value: r.claimable ? r.claimableAssets : r.estimatedAssets })),
+    });
+  };
 
   /** Fresh Machine data for one Machine, read the way the scanner reads it. */
   const dataFor = async (machine: Address) => {
@@ -131,8 +165,27 @@ describe.skipIf(forkSkip)("Ethereum hub (fork)", () => {
     expect(position.value).toBeGreaterThan((assets * 99n) / 100n);
     expect(position.depositAllowance).toBe(0n); // the depositor pulled exactly what was approved
 
+    // MARK: Earnings, through the app's scans: a deposit at the current price has earned nothing yet
+    expect(await earnedOn(dusd)).toMatchObject({ ok: true, total: 0n });
+
+    // A quarter of the shares sent to another wallet: valued at the share price of that block.
+    const sent = position.shares! / 4n;
+    await sendAs(client, TEST_ACCOUNT, {
+      address: dusd.shareToken,
+      abi: erc20Abi,
+      functionName: "transfer",
+      args: [OTHER_WALLET, sent],
+    });
+    const sentValue = await client.readContract({
+      address: dusd.machine,
+      abi: machineAbi,
+      functionName: "convertToAssets",
+      args: [sent],
+    });
+    expect(await earnedOn(dusd)).toMatchObject({ ok: true, total: 0n });
+
     // MARK: Request a redemption
-    const redeemShares = position.shares!;
+    const redeemShares = position.shares! - sent;
     const gross = await client.readContract({
       address: dusd.machine,
       abi: machineAbi,
@@ -234,6 +287,14 @@ describe.skipIf(forkSkip)("Ethereum hub (fork)", () => {
     });
     const after = await erc20Balance(client, ETHEREUM.usdc, TEST_ACCOUNT);
     expect(after - before).toBe(claimable);
+
+    // Everything left: earned = what the claim paid + what the sent shares were worth − the deposit.
+    const earned = await earnedOn(finalized);
+    expect(earned.ok).toBe(true);
+    if (!earned.ok) return;
+    expect(earned.current).toBe(0n);
+    const exact = claimable + sentValue - assets;
+    expect(earned.total === exact || earned.total === 0n).toBe(true); // 0 when within rounding
   });
 
   it("wraps ETH and deposits it into Dialectic ETH", async () => {

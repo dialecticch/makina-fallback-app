@@ -1,8 +1,9 @@
 import { type Address, encodeAbiParameters, hexToBigInt, keccak256, numberToHex, type PublicClient } from "viem";
 
 /**
- * Creation time of redemption requests, read from AsyncRedeemer storage: the contract exposes no getter for it,
- * and reading storage is two orders of magnitude cheaper than finding the `RedeemRequestCreated` log.
+ * Creation time and recorded assets of redemption requests, read from AsyncRedeemer storage: the contract exposes
+ * no getter for either, and reading storage is two orders of magnitude cheaper than finding the
+ * `RedeemRequestCreated` log.
  *
  * Layout (makina-periphery v1.3.0, AsyncRedeemer and AsyncRedeemerFee): ERC-7201 namespace
  * `makina.storage.AsyncRedeemer` holds `{ _nextRequestId, _lastFinalizedRequestId, _finalizationDelay,
@@ -12,13 +13,36 @@ import { type Address, encodeAbiParameters, hexToBigInt, keccak256, numberToHex,
  */
 const NAMESPACE = 0x187c268ec5d498b5b6e4945b27f62abf37217cdbd80e6429181b3e4c2c378900n;
 const REQUESTS_SLOT = NAMESPACE + 3n;
+const REQUEST_ASSETS_OFFSET = 1n;
 const REQUEST_TIME_OFFSET = 2n;
 
-export function requestTimeSlot(requestId: bigint) {
+function requestSlot(requestId: bigint, offset: bigint) {
   const base = hexToBigInt(
     keccak256(encodeAbiParameters([{ type: "uint256" }, { type: "uint256" }], [requestId, REQUESTS_SLOT])),
   );
-  return numberToHex(base + REQUEST_TIME_OFFSET, { size: 32 });
+  return numberToHex(base + offset, { size: 32 });
+}
+
+export const requestTimeSlot = (requestId: bigint) => requestSlot(requestId, REQUEST_TIME_OFFSET);
+export const requestAssetsSlot = (requestId: bigint) => requestSlot(requestId, REQUEST_ASSETS_OFFSET);
+
+/**
+ * `assets` recorded when each request was created (`convertToAssets(shares)` less any redeem fee, at that time),
+ * `undefined` where the read failed. Finalization pays the lower of this and the value then.
+ */
+export async function readRequestAssets(
+  client: Pick<PublicClient, "getStorageAt">,
+  redeemer: Address,
+  requestIds: readonly bigint[],
+): Promise<(bigint | undefined)[]> {
+  return Promise.all(
+    requestIds.map(async (id) => {
+      const value = await client
+        .getStorageAt({ address: redeemer, slot: requestAssetsSlot(id) })
+        .catch(() => undefined);
+      return value ? hexToBigInt(value) : undefined;
+    }),
+  );
 }
 
 /**

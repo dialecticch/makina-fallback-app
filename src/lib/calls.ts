@@ -19,14 +19,22 @@ export function call<const abi extends Abi, const fn extends ViewName<abi>>(
   return { address, abi: abi as Abi, functionName, args: args as readonly unknown[] | undefined };
 }
 
-/** Multicall with `allowFailure`: each failed read comes back as `undefined` instead of failing the batch. */
-export async function multicallLoose(client: Pick<PublicClient, "multicall">, calls: Call[]): Promise<unknown[]> {
+/**
+ * Multicall with `allowFailure`: each failed read comes back as `undefined` instead of failing the batch. With
+ * `blockNumber`, reads historical state (the RPC must serve it).
+ */
+export async function multicallLoose(
+  client: Pick<PublicClient, "multicall">,
+  calls: Call[],
+  { blockNumber }: { blockNumber?: bigint } = {},
+): Promise<unknown[]> {
   if (calls.length === 0) return [];
   // Heterogeneous calls defeat viem's per-call typing (checked at construction by `call()` instead).
   const results = (await client.multicall({
     contracts: calls as unknown as readonly { address: Address; abi: Abi; functionName: string }[],
     allowFailure: true,
     batchSize: 16_384,
+    blockNumber,
   })) as { status: "success" | "failure"; result?: unknown }[];
   return results.map((r) => (r.status === "success" ? r.result : undefined));
 }
