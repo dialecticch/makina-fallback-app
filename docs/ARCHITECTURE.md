@@ -81,6 +81,12 @@ average cost into shares held and shares gone. The movements must add up to the 
 otherwise the figure is "–" with the reason; the history is refetched whenever the balances change, so the two stay
 consistent.
 
+The figure is indicative by design: it counts yield while the shares are in the wallet. Shares lent (Aave, Morpho),
+pooled (Curve, Uniswap), wrapped (Pendle) or moved to another wallet leave at the share price then and come back as a
+new entry, so their yield while away, and the protocol's own interest or fees, are not counted. It never counts more
+than the wallet earned. Fixing this per protocol (pairing returns with pinned custody contracts) was left out to keep
+the scan generic and light.
+
 The scanner (`scanLogs`) runs outside React. Every RPC works through one queue of block ranges in parallel, each with
 its own range limit (`maxLogBlocks` in chains.ts, or 10,000 blocks doubling and halving for unknown RPCs). Requests
 are paced per RPC (`src/lib/rate-limit.ts`: the rate halves on a 429 and grows slowly on success), aborted on timeout,

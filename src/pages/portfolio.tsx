@@ -206,7 +206,9 @@ function Earned({ row, loading }: { row: EarningsRow | undefined; loading: boole
           </span>
         )}
         {result.past !== 0n && <span>Shares redeemed or sent: {signedAmount(result.past, decimals)}</span>}
-        <span className="text-muted-foreground">At the share price when shares came in and left.</span>
+        <span className="text-muted-foreground">
+          Indicative: counts yield while the shares are in this wallet, not while lent, pooled or held elsewhere.
+        </span>
       </TooltipContent>
     </Tooltip>
   );
@@ -428,7 +430,7 @@ function PastSection({ earnings }: { earnings: Map<string, EarningsRow> }) {
     },
   ];
   return (
-    <Section title="Past positions">
+    <Section title="Past positions" description="Indicative: what the shares earned while in this wallet.">
       <FitTable columns={columns} rows={rows} rowKey={({ view }) => view.key} />
     </Section>
   );
